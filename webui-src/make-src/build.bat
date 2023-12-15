@@ -40,7 +40,7 @@ for /R %%F in (*.js) do call :addfile-js "%basefolder%" "%%F"
 popd
 
 echo copying assets folder
-xcopy /s %src%\assets\ %publicdest%
+xcopy /s %src%\app\assets\ %publicdest%
 
 echo "### WebUI build complete ###"
 

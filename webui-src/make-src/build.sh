@@ -55,7 +55,7 @@ if [ "$2" = "" ]||[ "$2" = "app.js" ]; then
 fi
 
 echo copying assets folder
-cp -r $src/assets/* $publicdest/
+cp -r $src/app/assets/* $publicdest/
 
 if [ "$2" != "" ]&&[ "$3" != "" ]; then
 	if [ ! -d "$3/webui" ]; then
