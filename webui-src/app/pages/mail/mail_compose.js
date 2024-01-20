@@ -1,7 +1,7 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const widget = require('widgets');
-const peopleUtil = require('people/people_util');
+const widget = require('components/widgets');
+const peopleUtil = require('pages/people/people_util');
 
 const Layout = () => {
   const Data = {

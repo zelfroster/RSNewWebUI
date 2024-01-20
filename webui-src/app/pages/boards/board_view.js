@@ -1,6 +1,6 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const util = require('boards/boards_util');
+const util = require('pages/boards/boards_util');
 const Data = util.Data;
 
 const messageGroups = ['Public', 'Restricted Circle', 'Restricted Node Group'];

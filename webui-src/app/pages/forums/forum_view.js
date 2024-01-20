@@ -1,7 +1,7 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const util = require('forums/forums_util');
-const peopleUtil = require('people/people_util');
+const util = require('pages/forums/forums_util');
+const peopleUtil = require('pages/people/people_util');
 const { updatedisplayforums } = require('./forums_util');
 
 function createforum() {

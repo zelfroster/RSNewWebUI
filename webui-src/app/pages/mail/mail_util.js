@@ -1,9 +1,9 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const util = require('files/files_util');
-const widget = require('widgets');
-const peopleUtil = require('people/people_util');
-const compose = require('mail/mail_compose');
+const util = require('pages/files/files_util');
+const widget = require('components/widgets');
+const peopleUtil = require('pages/people/people_util');
+const compose = require('pages/mail/mail_compose');
 
 // rsmsgs.h
 const RS_MSG_BOXMASK = 0x000f;

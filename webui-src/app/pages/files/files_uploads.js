@@ -1,6 +1,6 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const util = require('files/files_util');
+const util = require('pages/files/files_util');
 
 const Uploads = {
   statusMap: {},

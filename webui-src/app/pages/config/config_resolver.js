@@ -1,13 +1,13 @@
 const m = require('mithril');
-const widget = require('widgets');
+const widget = require('components/widgets');
 
 const sections = {
-  network: require('config/config_network'),
-  node: require('config/config_node'),
-  services: require('config/config_services'),
-  files: require('config/config_files'),
-  people: require('config/config_people'),
-  mail: require('config/config_mail'),
+  network: require('pages/config/config_network'),
+  node: require('pages/config/config_node'),
+  services: require('pages/config/config_services'),
+  files: require('pages/config/config_files'),
+  people: require('pages/config/config_people'),
+  mail: require('pages/config/config_mail'),
 };
 
 const Layout = {

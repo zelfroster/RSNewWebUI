@@ -1,9 +1,9 @@
 const m = require('mithril');
-const widget = require('widgets');
+const widget = require('components/widgets');
 const rs = require('rswebui');
-const util = require('channels/channels_util');
-const viewUtil = require('channels/channel_view');
-const peopleUtil = require('people/people_util');
+const util = require('pages/channels/channels_util');
+const viewUtil = require('pages/channels/channel_view');
+const peopleUtil = require('pages/people/people_util');
 
 const getChannels = {
   All: [],
@@ -35,10 +35,10 @@ const getChannels = {
 };
 
 const sections = {
-  MyChannels: require('channels/my_channels'),
-  SubscribedChannels: require('channels/subscribed_channels'),
-  PopularChannels: require('channels/popular_channels'),
-  OtherChannels: require('channels/other_channels'),
+  MyChannels: require('pages/channels/my_channels'),
+  SubscribedChannels: require('pages/channels/subscribed_channels'),
+  PopularChannels: require('pages/channels/popular_channels'),
+  OtherChannels: require('pages/channels/other_channels'),
 };
 
 const Layout = () => {

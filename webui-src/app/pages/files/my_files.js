@@ -1,7 +1,7 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const util = require('files/files_util');
-const manager = require('files/files_manager');
+const util = require('pages/files/files_util');
+const manager = require('pages/files/files_manager');
 
 const DisplayFiles = () => {
   const childrenList = []; // stores children details

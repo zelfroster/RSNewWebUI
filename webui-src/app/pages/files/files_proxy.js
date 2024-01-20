@@ -1,6 +1,6 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const futil = require('files/files_util');
+const futil = require('pages/files/files_util');
 
 const fileProxyObj = futil.createProxy({}, () => {
   m.redraw();

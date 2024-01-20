@@ -1,6 +1,6 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const widget = require('widgets');
+const widget = require('components/widgets');
 
 const RS_FILE_CTRL_PAUSE = 0x00000100;
 const RS_FILE_CTRL_START = 0x00000200;

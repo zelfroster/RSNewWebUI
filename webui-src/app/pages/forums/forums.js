@@ -1,9 +1,9 @@
 const m = require('mithril');
-const widget = require('widgets');
+const widget = require('components/widgets');
 const rs = require('rswebui');
-const util = require('forums/forums_util');
-const viewUtil = require('forums/forum_view');
-const peopleUtil = require('people/people_util');
+const util = require('pages/forums/forums_util');
+const viewUtil = require('pages/forums/forum_view');
+const peopleUtil = require('pages/people/people_util');
 
 const getForums = {
   All: [],
@@ -25,10 +25,10 @@ const getForums = {
   },
 };
 const sections = {
-  MyForums: require('forums/my_forums'),
-  SubscribedForums: require('forums/subscribed_forums'),
-  PopularForums: require('forums/popular_forums'),
-  OtherForums: require('forums/other_forums'),
+  MyForums: require('pages/forums/my_forums'),
+  SubscribedForums: require('pages/forums/subscribed_forums'),
+  PopularForums: require('pages/forums/popular_forums'),
+  OtherForums: require('pages/forums/other_forums'),
 };
 
 const Layout = () => {

@@ -1,5 +1,5 @@
 const m = require('mithril');
-const util = require('channels/channels_util');
+const util = require('pages/channels/channels_util');
 
 const Layout = () => {
   return {

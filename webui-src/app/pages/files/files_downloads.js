@@ -1,7 +1,7 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const util = require('files/files_util');
-const widget = require('widgets');
+const util = require('pages/files/files_util');
+const widget = require('components/widgets');
 
 const Downloads = {
   strategies: {},

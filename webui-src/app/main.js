@@ -2,15 +2,15 @@ const m = require('mithril');
 
 const login = require('login');
 const home = require('home');
-const network = require('network/network');
-const people = require('people/people_resolver');
-const chat = require('chat/chat');
-const mail = require('mail/mail_resolver');
-const files = require('files/files_resolver');
-const channels = require('channels/channels');
-const forums = require('forums/forums');
-const boards = require('boards/boards');
-const config = require('config/config_resolver');
+const network = require('pages/network/network');
+const people = require('pages/people/people_resolver');
+const chat = require('pages/chat/chat');
+const mail = require('pages/mail/mail_resolver');
+const files = require('pages/files/files_resolver');
+const channels = require('pages/channels/channels');
+const forums = require('pages/forums/forums');
+const boards = require('pages/boards/boards');
+const config = require('pages/config/config_resolver');
 
 const navIcon = {
   home: m('i.fas.fa-home.sidenav-icon'),

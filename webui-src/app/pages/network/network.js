@@ -1,7 +1,7 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const widget = require('widgets');
-const Data = require('network/network_data');
+const widget = require('components/widgets');
+const Data = require('pages/network/network_data');
 
 const ConfirmRemove = () => {
   return {

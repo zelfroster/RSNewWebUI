@@ -1,7 +1,7 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const widget = require('widgets');
-const util = require('config/config_util');
+const widget = require('components/widgets');
+const util = require('pages/config/config_util');
 
 const msgTagObj = {
   tagId: 100,

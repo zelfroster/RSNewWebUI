@@ -1,8 +1,8 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const widget = require('widgets');
-const futil = require('files/files_util');
-const fproxy = require('files/files_proxy');
+const widget = require('components/widgets');
+const futil = require('pages/files/files_util');
+const fproxy = require('pages/files/files_proxy');
 
 let matchString = '';
 let currentItem = 0;

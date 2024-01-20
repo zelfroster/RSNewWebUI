@@ -1,8 +1,8 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const widget = require('widgets');
-const futil = require('files/files_util');
-const cutil = require('config/config_util');
+const widget = require('components/widgets');
+const futil = require('pages/files/files_util');
+const cutil = require('pages/config/config_util');
 
 const shareManagerInfo = `
   This is a list of shared folders. You can add and remove folders using the buttons at the bottom.

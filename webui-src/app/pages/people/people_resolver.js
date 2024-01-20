@@ -1,10 +1,10 @@
 const m = require('mithril');
-const widget = require('widgets');
+const widget = require('components/widgets');
 
 const sections = {
-  OwnIdentity: require('people/people_ownids'),
-  MyContacts: require('people/people_own_contacts'),
-  All: require('people/people'),
+  OwnIdentity: require('pages/people/people_ownids'),
+  MyContacts: require('pages/people/people_own_contacts'),
+  All: require('pages/people/people'),
 };
 
 const Layout = {

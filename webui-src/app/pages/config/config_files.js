@@ -1,6 +1,6 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const util = require('config/config_util');
+const util = require('pages/config/config_util');
 
 const SharedDirectories = () => {
   let directories = [];

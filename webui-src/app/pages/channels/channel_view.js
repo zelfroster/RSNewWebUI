@@ -1,12 +1,12 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const util = require('channels/channels_util');
-const widget = require('widgets');
+const util = require('pages/channels/channels_util');
+const widget = require('components/widgets');
 const Data = util.Data;
-const peopleUtil = require('people/people_util');
-const sha1 = require('channels/sha1');
-const fileUtil = require('files/files_util');
-const fileDown = require('files/files_downloads');
+const peopleUtil = require('pages/people/people_util');
+const sha1 = require('pages/channels/sha1');
+const fileUtil = require('pages/files/files_util');
+const fileDown = require('pages/files/files_downloads');
 
 const filesUploadHashes = {
   // figure out a better way later.

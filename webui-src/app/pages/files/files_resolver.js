@@ -1,13 +1,13 @@
 const m = require('mithril');
 
-const widget = require('widgets');
+const widget = require('components/widgets');
 
-const downloads = require('files/files_downloads');
-const uploads = require('files/files_uploads');
-const util = require('files/files_util');
-const search = require('files/files_search');
-const myfile = require('files/my_files');
-const friendfile = require('files/friends_files');
+const downloads = require('pages/files/files_downloads');
+const uploads = require('pages/files/files_uploads');
+const util = require('pages/files/files_util');
+const search = require('pages/files/files_search');
+const myfile = require('pages/files/my_files');
+const friendfile = require('pages/files/friends_files');
 
 const MyFiles = () => {
   return {

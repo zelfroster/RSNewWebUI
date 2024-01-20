@@ -1,9 +1,9 @@
 const m = require('mithril');
-const widget = require('widgets');
+const widget = require('components/widgets');
 const rs = require('rswebui');
-const util = require('boards/boards_util');
-const viewUtil = require('boards/board_view');
-const peopleUtil = require('people/people_util');
+const util = require('pages/boards/boards_util');
+const viewUtil = require('pages/boards/board_view');
+const peopleUtil = require('pages/people/people_util');
 
 const getBoards = {
   All: [],
@@ -29,10 +29,10 @@ const getBoards = {
 };
 
 const sections = {
-  MyBoards: require('boards/my_boards'),
-  SubscribedBoards: require('boards/subscribed_boards'),
-  PopularBoards: require('boards/popular_boards'),
-  OtherBoards: require('boards/other_boards'),
+  MyBoards: require('pages/boards/my_boards'),
+  SubscribedBoards: require('pages/boards/subscribed_boards'),
+  PopularBoards: require('pages/boards/popular_boards'),
+  OtherBoards: require('pages/boards/other_boards'),
 };
 
 const Layout = () => {

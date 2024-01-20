@@ -1,6 +1,6 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const widget = require('widgets');
+const widget = require('components/widgets');
 
 const logo = () => {
   return {

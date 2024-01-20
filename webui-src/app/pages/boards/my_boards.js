@@ -1,5 +1,5 @@
 const m = require('mithril');
-const util = require('boards/boards_util');
+const util = require('pages/boards/boards_util');
 
 const Layout = () => {
   return {

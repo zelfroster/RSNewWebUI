@@ -1,7 +1,7 @@
 const m = require('mithril');
 const rs = require('rswebui');
-const util = require('mail/mail_util');
-const compose = require('mail/mail_compose');
+const util = require('pages/mail/mail_util');
+const compose = require('pages/mail/mail_compose');
 
 const Messages = {
   all: [],
@@ -53,22 +53,22 @@ const Messages = {
 };
 
 const sections = {
-  inbox: require('mail/mail_inbox'),
-  outbox: require('mail/mail_outbox'),
-  drafts: require('mail/mail_draftbox'),
-  sent: require('mail/mail_sentbox'),
-  trash: require('mail/mail_trashbox'),
+  inbox: require('pages/mail/mail_inbox'),
+  outbox: require('pages/mail/mail_outbox'),
+  drafts: require('pages/mail/mail_draftbox'),
+  sent: require('pages/mail/mail_sentbox'),
+  trash: require('pages/mail/mail_trashbox'),
 };
 const sectionsquickview = {
-  starred: require('mail/mail_starred'),
-  system: require('mail/mail_system'),
-  spam: require('mail/mail_spam'),
-  attachment: require('mail/mail_attachment'),
-  important: require('mail/mail_important'),
-  work: require('mail/mail_work'),
-  todo: require('mail/mail_todo'),
-  later: require('mail/mail_later'),
-  personal: require('mail/mail_personal'),
+  starred: require('pages/mail/mail_starred'),
+  system: require('pages/mail/mail_system'),
+  spam: require('pages/mail/mail_spam'),
+  attachment: require('pages/mail/mail_attachment'),
+  important: require('pages/mail/mail_important'),
+  work: require('pages/mail/mail_work'),
+  todo: require('pages/mail/mail_todo'),
+  later: require('pages/mail/mail_later'),
+  personal: require('pages/mail/mail_personal'),
 };
 const tagselect = {
   showval: 'Tags',
