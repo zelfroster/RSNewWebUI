@@ -1,6 +1,5 @@
 {
   "name": "webui-src",
-  "type": "commonjs",
   "version": "1.0.0",
   "description": "Retroshare's Web Interface",
   "scripts": {
