@@ -22,24 +22,24 @@ const Messages = {
   load() {
     rs.rsJsonApiRequest('/rsMsgs/getMessageSummaries', { box: util.BOX_ALL }, (data) => {
       Messages.all = data.msgList;
-      Messages.inbox = Messages.all.filter(
-        (msg) => (msg.msgflags & util.RS_MSG_BOXMASK) === util.RS_MSG_INBOX
-      );
-      Messages.sent = Messages.all.filter(
-        (msg) => (msg.msgflags & util.RS_MSG_BOXMASK) === util.RS_MSG_SENTBOX
-      );
-      Messages.outbox = Messages.all.filter(
-        (msg) => (msg.msgflags & util.RS_MSG_BOXMASK) === util.RS_MSG_OUTBOX
-      );
-      Messages.drafts = Messages.all.filter(
-        (msg) => (msg.msgflags & util.RS_MSG_BOXMASK) === util.RS_MSG_DRAFTBOX
-      );
-      Messages.trash = Messages.all.filter((msg) => msg.msgflags & util.RS_MSG_TRASH);
-      Messages.starred = Messages.all.filter((msg) => msg.msgflags & util.RS_MSG_STAR);
-      Messages.system = Messages.all.filter((msg) => msg.msgflags & util.RS_MSG_SYSTEM);
-      Messages.spam = Messages.all.filter((msg) => msg.msgflags & util.RS_MSG_SPAM);
+      Messages.inbox = Messages.all
+        .filter((msg) => (msg.msgflags & util.RS_MSG_BOXMASK) === util.RS_MSG_INBOX)
+        .reverse();
+      Messages.sent = Messages.all
+        .filter((msg) => (msg.msgflags & util.RS_MSG_BOXMASK) === util.RS_MSG_SENTBOX)
+        .reverse();
+      Messages.outbox = Messages.all
+        .filter((msg) => (msg.msgflags & util.RS_MSG_BOXMASK) === util.RS_MSG_OUTBOX)
+        .reverse();
+      Messages.drafts = Messages.all
+        .filter((msg) => (msg.msgflags & util.RS_MSG_BOXMASK) === util.RS_MSG_DRAFTBOX)
+        .reverse();
+      Messages.trash = Messages.all.filter((msg) => msg.msgflags & util.RS_MSG_TRASH).reverse();
+      Messages.starred = Messages.all.filter((msg) => msg.msgflags & util.RS_MSG_STAR).reverse();
+      Messages.system = Messages.all.filter((msg) => msg.msgflags & util.RS_MSG_SYSTEM).reverse();
+      Messages.spam = Messages.all.filter((msg) => msg.msgflags & util.RS_MSG_SPAM).reverse();
 
-      Messages.attachment = Messages.all.filter((msg) => msg.count);
+      Messages.attachment = Messages.all.filter((msg) => msg.count).reverse();
 
       // Messages.important = Messages.all.filter(
       //   (msg) => msg.msgflags & util.RS_MSGTAGTYPE_IMPORTANT
