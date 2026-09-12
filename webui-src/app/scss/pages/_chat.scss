@@ -2391,3 +2391,24 @@ input.emoji-search-input:focus {
     line-height: 1;
   }
 }
+
+// Flat filled create action in the Chat rooms header.
+.chat-own-profile-card button.chat-create-room-btn {
+  color: #ffffff;
+  background: #3ba4d7;
+  border: 0;
+  box-shadow: none;
+  font-weight: 600;
+
+  &:hover,
+  &:active {
+    color: #ffffff;
+    background: #3ba4d7;
+    box-shadow: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #3ba4d7;
+    outline-offset: 2px;
+  }
+}
