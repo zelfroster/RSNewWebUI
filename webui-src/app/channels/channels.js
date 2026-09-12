@@ -44,6 +44,7 @@ const getChannels = {
 const CHANNEL_LIST_REFRESH_MS = 30000;
 
 const sections = {
+  All: require('channels/popular_channels'),
   MyChannels: require('channels/my_channels'),
   Subscribed: require('channels/subscribed_channels'),
   Popular: require('channels/popular_channels'),
@@ -113,7 +114,11 @@ const Layout = () => {
             })
           : m(sections[vnode.attrs.pathInfo.tab], {
               // subscribed, all, popular, other
-              list: getChannels[vnode.attrs.pathInfo.tab],
+              list: vnode.attrs.pathInfo.tab === 'All'
+                ? [...new Map([...(getChannels.Popular || []), ...(getChannels.Other || [])].map((item) => [item.mGroupId, item])).values()]
+                : getChannels[vnode.attrs.pathInfo.tab],
+              title: vnode.attrs.pathInfo.tab === 'All' ? 'All Channels' : undefined,
+              category: vnode.attrs.pathInfo.tab,
               onCreateChannel: createChannel,
             }),
       ]),
@@ -121,14 +126,11 @@ const Layout = () => {
 };
 
 module.exports = {
-  view: (vnode) => {
-    return [
-      m(widget.Sidebar, {
-        tabs: Object.keys(sections),
-        baseRoute: '/channels/',
-        mobileDrawer: true,
-      }),
-      m('.node-panel', m(Layout, { pathInfo: vnode.attrs })),
-    ];
-  },
+  view: (vnode) => m(require('library_layout'), {
+    title: 'Channels',
+    icon: 'broadcast-tower',
+    tabs: Object.keys(sections).filter((tab) => tab !== 'All'),
+    mobileTabs: [{ tab: 'MyChannels', label: 'My' }, 'Subscribed', 'All'],
+    baseRoute: '/channels/',
+  }, m(Layout, { pathInfo: vnode.attrs })),
 };

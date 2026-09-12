@@ -531,7 +531,7 @@
     &__actions {
       width: 100%;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 0.4rem;
     }
   }
@@ -540,7 +540,12 @@
     padding: 0.5rem 0.25rem;
     justify-content: center;
     font-size: 0.78rem;
-    min-height: 40px;
+    min-height: 44px;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+
+    .debug-btn__suffix { display: none; }
 
     span {
       white-space: nowrap;
@@ -625,10 +630,6 @@
 }
 
 @media (max-width: 480px) {
-  .debug-header__actions {
-    grid-template-columns: 1fr;
-  }
-
   .debug-kpi-grid {
     grid-template-columns: 1fr;
   }

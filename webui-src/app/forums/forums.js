@@ -1,5 +1,4 @@
 const m = require('mithril');
-const widget = require('widgets');
 const rs = require('rswebui');
 const util = require('forums/forums_util');
 const viewUtil = require('forums/forum_view');
@@ -30,6 +29,7 @@ const getForums = {
 const FORUM_LIST_REFRESH_MS = 30000;
 
 const sections = {
+  All: require('forums/popular_forums'),
   MyForums: require('forums/my_forums'),
   Subscribed: require('forums/subscribed_forums'),
   Popular: require('forums/popular_forums'),
@@ -96,7 +96,11 @@ const Layout = () => {
               onSubscriptionChange: getForums.load,
             })
             : m(sections[vnode.attrs.pathInfo.tab], {
-              list: getForums[vnode.attrs.pathInfo.tab],
+              list: vnode.attrs.pathInfo.tab === 'All'
+                ? [...new Map([...(getForums.Popular || []), ...(getForums.Other || [])].map((item) => [item.mGroupId, item])).values()]
+                : getForums[vnode.attrs.pathInfo.tab],
+              title: vnode.attrs.pathInfo.tab === 'All' ? 'All Forums' : undefined,
+              category: vnode.attrs.pathInfo.tab,
               onCreateForum: createForum,
             }),
       ]);
@@ -105,14 +109,11 @@ const Layout = () => {
 };
 
 module.exports = {
-  view: (vnode) => {
-    return [
-      m(widget.Sidebar, {
-        tabs: Object.keys(sections),
-        baseRoute: '/forums/',
-        mobileDrawer: true,
-      }),
-      m('.node-panel', m(Layout, { pathInfo: vnode.attrs })),
-    ];
-  },
+  view: (vnode) => m(require('library_layout'), {
+    title: 'Forums',
+    icon: 'comments',
+    tabs: Object.keys(sections).filter((tab) => tab !== 'All'),
+    mobileTabs: [{ tab: 'MyForums', label: 'My' }, 'Subscribed', 'All'],
+    baseRoute: '/forums/',
+  }, m(Layout, { pathInfo: vnode.attrs })),
 };

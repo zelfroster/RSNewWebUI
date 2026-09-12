@@ -60,16 +60,19 @@ const Debug = () => {
           m('.debug-header__actions', [
             m('button.debug-btn[type=button]', {
               onclick: () => window.location.reload(true),
+              'aria-label': 'Reload Web UI',
               title: 'Force reload the Web UI bundle',
-            }, [m('i.fas.fa-sync-alt'), m('span', 'Reload Web UI')]),
+            }, [m('i.fas.fa-sync-alt'), m('span', ['Reload', m('span.debug-btn__suffix', ' Web UI')])]),
             m('button.debug-btn[type=button]', {
               onclick: loadCoreVersion,
+              'aria-label': 'Ping Core',
               title: 'Ping the RetroShare core for version & latency',
-            }, [m('i.fas.fa-stopwatch'), m('span', 'Ping Core')]),
+            }, [m('i.fas.fa-stopwatch'), m('span', ['Ping', m('span.debug-btn__suffix', ' Core')])]),
             m('button.debug-btn.debug-btn--danger[type=button]', {
               onclick: () => rs.resetApiStats(),
+              'aria-label': 'Reset Stats',
               title: 'Reset API counters and latency tracking',
-            }, [m('i.fas.fa-eraser'), m('span', 'Reset Stats')]),
+            }, [m('i.fas.fa-eraser'), m('span', ['Reset', m('span.debug-btn__suffix', ' Stats')])]),
           ]),
         ]),
 

@@ -1,5 +1,4 @@
 const m = require('mithril');
-const widget = require('widgets');
 const rs = require('rswebui');
 const util = require('boards/boards_util');
 const viewUtil = require('boards/board_view');
@@ -40,6 +39,7 @@ const getBoards = {
 const BOARD_LIST_REFRESH_MS = 30000;
 
 const sections = {
+  All: require('boards/popular_boards'),
   MyBoards: require('boards/my_boards'),
   Subscribed: require('boards/subscribed_boards'),
   Popular: require('boards/popular_boards'),
@@ -73,13 +73,13 @@ const Layout = () => {
         class: vnode.attrs.pathInfo.mGroupId && !vnode.attrs.pathInfo.mMsgId ? 'boards-detail-widget' : '',
       }, [
         m('.top-heading', {
-          class: ['Subscribed', 'MyBoards', 'Popular', 'Other'].includes(vnode.attrs.pathInfo.tab) && !vnode.attrs.pathInfo.mGroupId
+          class: ['Subscribed', 'MyBoards', 'Popular', 'Other', 'All'].includes(vnode.attrs.pathInfo.tab) && !vnode.attrs.pathInfo.mGroupId
             ? 'boards-subscribed-list-toolbar' : '',
         }, [
           m(
             'button.boards-create-button',
             {
-              class: ['Subscribed', 'MyBoards', 'Other', 'Popular'].includes(vnode.attrs.pathInfo.tab) || vnode.attrs.pathInfo.mGroupId
+              class: ['Subscribed', 'MyBoards', 'Other', 'Popular', 'All'].includes(vnode.attrs.pathInfo.tab) || vnode.attrs.pathInfo.mGroupId
                 ? 'boards-create-button--mobile-hidden' : '',
               onclick: createBoard,
             },
@@ -100,7 +100,11 @@ const Layout = () => {
               onSubscriptionChange: getBoards.load,
             })
           : m(sections[vnode.attrs.pathInfo.tab], {
-              list: getBoards[vnode.attrs.pathInfo.tab],
+              list: vnode.attrs.pathInfo.tab === 'All'
+                ? [...new Map([...(getBoards.Popular || []), ...(getBoards.Other || [])].map((item) => [item.mGroupId, item])).values()]
+                : getBoards[vnode.attrs.pathInfo.tab],
+              title: vnode.attrs.pathInfo.tab === 'All' ? 'All Boards' : undefined,
+              category: vnode.attrs.pathInfo.tab,
               onCreateBoard: createBoard,
             }),
       ]),
@@ -108,14 +112,11 @@ const Layout = () => {
 };
 
 module.exports = {
-  view: (vnode) => {
-    return [
-      m(widget.Sidebar, {
-        tabs: Object.keys(sections),
-        baseRoute: '/boards/',
-        mobileDrawer: true,
-      }),
-      m('.node-panel', m(Layout, { pathInfo: vnode.attrs })),
-    ];
-  },
+  view: (vnode) => m(require('library_layout'), {
+    title: 'Boards',
+    icon: 'th-large',
+    tabs: Object.keys(sections).filter((tab) => tab !== 'All'),
+    mobileTabs: [{ tab: 'MyBoards', label: 'My' }, 'Subscribed', 'All'],
+    baseRoute: '/boards/',
+  }, m(Layout, { pathInfo: vnode.attrs })),
 };

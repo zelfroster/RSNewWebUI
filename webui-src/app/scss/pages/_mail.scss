@@ -34,8 +34,8 @@
 // ==========================================================================
 
 .mail-folders-pane {
-  width: 250px;
-  min-width: 230px;
+  width: 280px;
+  min-width: 280px;
   max-width: 280px;
   height: 100%;
   background: #ffffff;
@@ -195,7 +195,7 @@
 // 2. MIDDLE PANE: Message List (Cards or Table)
 // ==========================================================================
 
-.mail-list-pane {
+  .mail-list-pane {
   width: 400px;
   min-width: 350px;
   max-width: 460px;
@@ -1796,11 +1796,6 @@ input.star-check {
 // ==========================================================================
 
 @media (max-width: 1024px) {
-  .mail-folders-pane {
-    width: 210px;
-    min-width: 200px;
-  }
-
   .mail-list-pane {
     width: 340px;
     min-width: 310px;
@@ -1819,6 +1814,7 @@ input.star-check {
     left: 0;
     bottom: 0;
     width: min(82vw, 290px);
+    min-width: 0;
     max-width: 85vw;
     z-index: 1200;
     background: #ffffff;

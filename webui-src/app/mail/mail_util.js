@@ -611,7 +611,7 @@ const ReadingPanePlaceholder = {
   view: () =>
     m('.mail-reading-placeholder', [
       m('.mail-reading-placeholder__icon', m('i.fas.fa-envelope-open-text')),
-      m('h3.mail-reading-placeholder__title', 'Select an email to read'),
+      m('h3.mail-reading-placeholder__title', 'Select an mail to read'),
       m('p.mail-reading-placeholder__subtitle', 'Choose a message from the list to display its full content here.'),
     ]),
 };

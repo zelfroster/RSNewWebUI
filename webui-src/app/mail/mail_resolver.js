@@ -285,7 +285,7 @@ const MailComponent = () => {
                   setShowCompose(true);
                 },
               },
-              [m('i.fas.fa-edit'), m('span', 'New email')]
+              [m('i.fas.fa-edit'), m('span', 'New mail')]
             ),
           ]),
 

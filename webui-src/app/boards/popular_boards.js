@@ -5,7 +5,7 @@ const Layout = () => {
   return {
     view: (v) => [
       m('.widget__heading', [
-        m('h3', 'Popular Boards'),
+        m('h3', v.attrs.title || 'Popular Boards'),
         m('button.popular-boards-create[type=button][title=Create Board][aria-label=Create Board]', {
           onclick: v.attrs.onCreateBoard,
         }, m('i.fas.fa-plus')),
@@ -19,7 +19,7 @@ const Layout = () => {
                 m(util.BoardSummary, {
                   key: board.mGroupId,
                   details: board,
-                  category: 'Popular',
+                  category: v.attrs.category || 'Popular',
                 })
               ),
           ])
