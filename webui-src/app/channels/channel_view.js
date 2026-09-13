@@ -26,6 +26,14 @@ function channelThumbnailSrc(post) {
   return String(base64).startsWith('data:') ? base64 : `data:image/png;base64,${base64}`;
 }
 
+function channelPostPublishTime(post) {
+  const timestamp = post && post.mMeta && post.mMeta.mPublishTs;
+  const value = Number(timestamp && typeof timestamp === 'object'
+    ? timestamp.xint64 ?? timestamp.xstr64
+    : timestamp);
+  return Number.isFinite(value) ? value : 0;
+}
+
 function channelPostCommentCount(postId, post) {
   const loadedComments = Data.Comments[postId];
   if (loadedComments) return Object.keys(loadedComments).length;
@@ -611,7 +619,9 @@ const ChannelView = () => {
             ]),
             m(
               '.posts-container',
-              Object.keys(plist).map((key) => {
+              Object.keys(plist).sort((a, b) =>
+                channelPostPublishTime(plist[b].post) - channelPostPublishTime(plist[a].post)
+              ).map((key) => {
                 const commentCount = channelPostCommentCount(key, plist[key].post);
                 return [
                 m(
