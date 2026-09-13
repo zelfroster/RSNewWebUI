@@ -617,11 +617,13 @@ function PostView() {
       const postUpVotes = numberValue(p.mUpVotes !== undefined ? p.mUpVotes : meta.mUpVotes);
       const postDownVotes = numberValue(p.mDownVotes !== undefined ? p.mDownVotes : meta.mDownVotes);
 
-      let imgSrc = '';
-      if (p.mImage && p.mImage.mData && p.mImage.mData.base64 && p.mImage.mData.base64.trim()) {
-        imgSrc = `data:image/png;base64,${p.mImage.mData.base64}`;
-      } else if (p.mThumbnail && p.mThumbnail.mData && p.mThumbnail.mData.base64 && p.mThumbnail.mData.base64.trim()) {
-        imgSrc = `data:image/png;base64,${p.mThumbnail.mData.base64}`;
+      let imgSrc = boardKanban.extractImageSrc(itemObj);
+      if (!imgSrc) {
+        if (p.mImage && p.mImage.mData && p.mImage.mData.base64 && p.mImage.mData.base64.trim()) {
+          imgSrc = `data:image/png;base64,${p.mImage.mData.base64}`;
+        } else if (p.mThumbnail && p.mThumbnail.mData && p.mThumbnail.mData.base64 && p.mThumbnail.mData.base64.trim()) {
+          imgSrc = `data:image/png;base64,${p.mThumbnail.mData.base64}`;
+        }
       }
 
       return [
@@ -639,11 +641,53 @@ function PostView() {
         m('.widget__heading', m('h3', title)),
         m('.widget__body', [
           imgSrc
-            ? m('img', {
-                src: imgSrc,
-                alt: title,
-                style: { maxWidth: '100%', maxHeight: '400px', display: 'block', marginBottom: '1rem', borderRadius: '8px' },
-              })
+            ? m(
+                '.board-post-media',
+                {
+                  role: 'button',
+                  tabindex: 0,
+                  title: 'Click to view full photo',
+                  'aria-label': 'Click to view full photo',
+                  onclick: () => {
+                    boardKanban.openPhotoModal([
+                      {
+                        title,
+                        image: imgSrc,
+                        thumbnail: imgSrc,
+                        post: p,
+                      },
+                    ], 0);
+                  },
+                  onkeydown: (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      boardKanban.openPhotoModal([
+                        {
+                          title,
+                          image: imgSrc,
+                          thumbnail: imgSrc,
+                          post: p,
+                        },
+                      ], 0);
+                    }
+                  },
+                },
+                [
+                  m('.board-post-media__backdrop', {
+                    style: {
+                      backgroundImage: `url("${imgSrc}")`,
+                    },
+                  }),
+                  m('img.board-post-media__image', {
+                    src: imgSrc,
+                    alt: title,
+                  }),
+                  m('.board-post-media__expand-hint', [
+                    m('i.fas.fa-expand'),
+                    m('span', 'View full photo'),
+                  ]),
+                ]
+              )
             : null,
           m('.board-post-meta', [
             m('span', 'Posted by '),
