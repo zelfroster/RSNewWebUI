@@ -2,7 +2,7 @@ const m = require('mithril');
 const rs = require('rswebui');
 const peopleUtil = require('people/people_util');
 
-function renderIdentityTooltip({ details, gxsId, name, rect, overlapAnchor = false }) {
+function renderIdentityTooltip({ details, gxsId, name, rect, overlapAnchor = false, belowAnchor = false }) {
   if (!details || !rect) return null;
 
   const avatar = details.mAvatar && details.mAvatar.base64 ? details.mAvatar.base64 : details.mAvatar;
@@ -19,7 +19,25 @@ function renderIdentityTooltip({ details, gxsId, name, rect, overlapAnchor = fal
   if (top + 160 > window.innerHeight) top = window.innerHeight - 170;
   if (top < gap) top = gap;
 
-  return m('.user-tooltip', { style: { top: `${top}px`, left: `${left}px` } }, [
+  // Measure the rendered tooltip so long names and IDs stay within the viewport.
+  const positionBelow = ({ dom }) => {
+    const bounds = dom.getBoundingClientRect();
+    const x = Math.max(gap, Math.min(rect.left, window.innerWidth - bounds.width - gap));
+    const below = rect.bottom + 6;
+    const y = below + bounds.height <= window.innerHeight - gap
+      ? below : Math.max(gap, rect.top - bounds.height - 6);
+    dom.style.left = `${x}px`;
+    dom.style.top = `${y}px`;
+  };
+  if (belowAnchor) {
+    left = rect.left;
+    top = rect.bottom + 6;
+  }
+
+  return m('.user-tooltip', {
+    oncreate: belowAnchor ? positionBelow : undefined,
+    onupdate: belowAnchor ? positionBelow : undefined,
+    style: { top: `${top}px`, left: `${left}px` } }, [
     m('.tooltip-avatar', m(peopleUtil.UserAvatar, {
       avatar,
       firstLetter: (name || '?').slice(0, 1).toUpperCase(),

@@ -8,6 +8,7 @@ const renderIdentityTooltip = require('mail/mail_identity_tooltip');
 const UserAvatarsCache = {};
 const RecipientDetailsCache = {};
 const MAX_RECIPIENTS = 20;
+const RecipientResult = require('mail/mail_recipient_result');
 
 function formatFileSize(bytes) {
   if (!bytes) return '0 B';
@@ -31,7 +32,7 @@ const Layout = () => {
     hoveredRecipient = {
       id: item.mGroupId,
       name: item.mGroupName,
-      rect: element.getBoundingClientRect(),
+      rect: (element.querySelector('.mail-recipient-result__id') || element).getBoundingClientRect(),
     };
 
     if (!RecipientDetailsCache[item.mGroupId]) {
@@ -55,7 +56,7 @@ const Layout = () => {
       gxsId: hoveredRecipient.id,
       name: hoveredRecipient.name,
       rect: hoveredRecipient.rect,
-      overlapAnchor: true,
+      belowAnchor: true,
     });
   }
 
@@ -537,7 +538,7 @@ const Layout = () => {
                             onclick: () => handleClick(item, 'to'),
                             onmouseenter: (event) => showRecipientTooltip(item, event.currentTarget),
                             onmouseleave: () => (hoveredRecipient = null),
-                          }, item.mGroupName)
+                          }, m(RecipientResult, { key: item.mGroupId, item }))
                         )
                       : m('li', 'No Item'),
                   ]),
@@ -600,7 +601,7 @@ const Layout = () => {
                                 onmouseenter: (event) => showRecipientTooltip(item, event.currentTarget),
                                 onmouseleave: () => (hoveredRecipient = null),
                               },
-                              item.mGroupName
+                              m(RecipientResult, { key: item.mGroupId, item })
                             )
                           )
                         : m('li', 'No Item'),
