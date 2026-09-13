@@ -96,8 +96,11 @@ const Layout = () => {
               onSubscriptionChange: getForums.load,
             })
             : m(sections[vnode.attrs.pathInfo.tab], {
+              //  The full list, not Popular ∪ Other: getForums has no Other key,
+              //  and the merge only worked because forums' Popular happens to
+              //  alias the full list -- a trap for whoever makes it a top-5.
               list: vnode.attrs.pathInfo.tab === 'All'
-                ? [...new Map([...(getForums.Popular || []), ...(getForums.Other || [])].map((item) => [item.mGroupId, item])).values()]
+                ? getForums.All
                 : getForums[vnode.attrs.pathInfo.tab],
               title: vnode.attrs.pathInfo.tab === 'All' ? 'All Forums' : undefined,
               category: vnode.attrs.pathInfo.tab,
