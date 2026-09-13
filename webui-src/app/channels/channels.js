@@ -19,7 +19,9 @@ const getChannels = {
         console.warn('Channels summaries response did not include channels', res && res.body);
         return;
       }
-      getChannels.All = channels;
+      //  Sorted like the old Popular ∪ Other merge the All tab used to
+      //  render: most popular first, not the server's group-id order.
+      getChannels.All = [...channels].sort((a, b) => (b.mPop || 0) - (a.mPop || 0));
       getChannels.Subscribed = channels.filter(
       (channel) =>
         channel.mSubscribeFlags === util.GROUP_SUBSCRIBE_SUBSCRIBED ||
@@ -114,8 +116,11 @@ const Layout = () => {
             })
           : m(sections[vnode.attrs.pathInfo.tab], {
               // subscribed, all, popular, other
+              //  Not Popular ∪ Other: for channels those two sets EXCLUDE the
+              //  subscribed ones, so "All Channels" lost a channel the moment
+              //  the user subscribed to it. The full list already exists.
               list: vnode.attrs.pathInfo.tab === 'All'
-                ? [...new Map([...(getChannels.Popular || []), ...(getChannels.Other || [])].map((item) => [item.mGroupId, item])).values()]
+                ? getChannels.All
                 : getChannels[vnode.attrs.pathInfo.tab],
               title: vnode.attrs.pathInfo.tab === 'All' ? 'All Channels' : undefined,
               category: vnode.attrs.pathInfo.tab,

@@ -18,7 +18,8 @@ const getBoards = {
         console.warn('Boards summaries response did not include groupInfo', res && res.body);
         return;
       }
-      getBoards.All = boards;
+      //  Same popularity order the All tab always had.
+      getBoards.All = [...boards].sort((a, b) => (b.mPop || 0) - (a.mPop || 0));
       const popular = [...boards].sort((a, b) => (b.mPop || 0) - (a.mPop || 0));
       getBoards.Other = popular.slice(5);
       getBoards.Popular = popular.slice(0, 5);
@@ -100,8 +101,11 @@ const Layout = () => {
               onSubscriptionChange: getBoards.load,
             })
           : m(sections[vnode.attrs.pathInfo.tab], {
+              //  The full list its loader already keeps, same as channels and
+              //  forums: a Popular ∪ Other merge is one filter change away
+              //  from silently dropping entries from "All".
               list: vnode.attrs.pathInfo.tab === 'All'
-                ? [...new Map([...(getBoards.Popular || []), ...(getBoards.Other || [])].map((item) => [item.mGroupId, item])).values()]
+                ? getBoards.All
                 : getBoards[vnode.attrs.pathInfo.tab],
               title: vnode.attrs.pathInfo.tab === 'All' ? 'All Boards' : undefined,
               category: vnode.attrs.pathInfo.tab,
