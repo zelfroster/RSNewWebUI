@@ -114,9 +114,10 @@ const Layout = () => {
 module.exports = {
   view: (vnode) => m(require('library_layout'), {
     title: 'Forums',
-    icon: 'comments',
+    icon: 'bullhorn',
     tabs: Object.keys(sections).filter((tab) => tab !== 'All'),
     mobileTabs: [{ tab: 'MyForums', label: 'My' }, 'Subscribed', 'All'],
     baseRoute: '/forums/',
+    detailOpen: Boolean(vnode.attrs.mGroupId),
   }, m(Layout, { pathInfo: vnode.attrs })),
 };

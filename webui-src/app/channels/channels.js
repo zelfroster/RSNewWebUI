@@ -133,9 +133,10 @@ const Layout = () => {
 module.exports = {
   view: (vnode) => m(require('library_layout'), {
     title: 'Channels',
-    icon: 'broadcast-tower',
+    icon: 'tv',
     tabs: Object.keys(sections).filter((tab) => tab !== 'All'),
     mobileTabs: [{ tab: 'MyChannels', label: 'My' }, 'Subscribed', 'All'],
     baseRoute: '/channels/',
+    detailOpen: Boolean(vnode.attrs.mGroupId),
   }, m(Layout, { pathInfo: vnode.attrs })),
 };

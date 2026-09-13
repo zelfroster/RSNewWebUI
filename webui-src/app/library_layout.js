@@ -21,7 +21,9 @@ function navigation(attrs, tabs, mobile = false) {
 
 // Shared visual shell, matching Network / People.
 module.exports = {
-  view: ({ attrs, children }) => m('.library-layout', [
+  view: ({ attrs, children }) => m('.library-layout', {
+    class: attrs.detailOpen ? 'library-layout--detail' : '',
+  }, [
     m('nav.library-navigation', { 'aria-label': attrs.title }, [
       m('.library-navigation__heading', [m(`i.fas.fa-${attrs.icon}`, { 'aria-hidden': 'true' }), m('h2', attrs.title)]),
       navigation(attrs, attrs.tabs),

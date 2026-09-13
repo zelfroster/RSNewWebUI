@@ -79,6 +79,13 @@
     }
 
     .top-heading { gap: .75rem; flex-wrap: wrap; }
+    // Boards wraps its search input; size the wrapper like Channels' searchbar.
+    .top-heading > .search-bar {
+      width: 40%;
+      min-width: 0;
+
+      input[type=text] { width: 100%; }
+    }
 
     input[type=search], input[type=text] {
       min-width: 0;
@@ -91,6 +98,9 @@
       padding: .5rem .75rem;
       &:focus { outline: 2px solid #bae6fd; border-color: #3ba4d7; background: #fff; }
     }
+
+    // Reserve space for the overlaid icon after the shared input padding.
+    input.board-toolbar__search-input { padding-left: 2.25rem; }
 
     table { border-color: #e2e8f0; }
     th { background: #f8fafc; color: #64748b; }
@@ -141,6 +151,7 @@
       padding: .5rem;
       > .widget, > .config-network > .widget { padding: .75rem; }
       .widget__heading { flex-wrap: wrap; }
+      .top-heading > .search-bar { width: 100%; }
     }
   }
 }
@@ -150,4 +161,23 @@
 @media (max-width: 700px) {
   .library-layout .library-navigation__tabs--desktop { display: none; }
   .library-layout .library-navigation__tabs--mobile { display: flex; }
+  .library-layout--detail .library-navigation__tabs--mobile { display: none; }
+}
+
+@media (max-width: 700px) {
+  .library-layout .library-content {
+    .widget.boards-detail-widget,
+    .widget.channels-detail-widget {
+      // Let the search row contain its full touch height before the title starts.
+      grid-template-rows: minmax(44px, auto) auto minmax(0, 1fr);
+      row-gap: .5rem;
+
+      > .widget__heading {
+        padding-top: .5rem;
+        padding-bottom: .5rem;
+
+        h3 { margin: 0; }
+      }
+    }
+  }
 }

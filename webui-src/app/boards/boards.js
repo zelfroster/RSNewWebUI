@@ -122,5 +122,6 @@ module.exports = {
     tabs: Object.keys(sections).filter((tab) => tab !== 'All'),
     mobileTabs: [{ tab: 'MyBoards', label: 'My' }, 'Subscribed', 'All'],
     baseRoute: '/boards/',
+    detailOpen: Boolean(vnode.attrs.mGroupId),
   }, m(Layout, { pathInfo: vnode.attrs })),
 };
