@@ -4,10 +4,7 @@
 // The search field.
 //
 // One object, everywhere: a lens on the left, the field, and a clear button
-// that appears once there is something to clear. It was nine different objects
-// before this -- some with an icon, some without, some a bare input carrying a
-// width in per cent -- which is the kind of inconsistency you notice without
-// being able to name.
+// that appears once there is something to clear.
 //
 // The border is on the wrapper, not the input, so the lens sits *inside* the
 // box rather than floating over a padded field. That also means focus can be

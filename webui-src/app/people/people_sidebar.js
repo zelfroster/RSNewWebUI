@@ -124,10 +124,9 @@ const PeopleSidebar = () => {
             },
           }),
 
-          //  2. Tabs, and the People filter beside them. The filter used to
-          //  own a row of its own, which on the Chats tab was an empty strip
-          //  and on People was one short control against a pane of dead
-          //  space. Same shape as the mail list: tabs left, filter right.
+          //  2. Tabs, and the People filter beside them -- same shape as the
+          //  mail list, tabs left and filter right. A row of its own would be
+          //  an empty strip on the Chats tab.
           m('.people-filter-row', [
             m(widget.Segmented, {
               class: 'segmented-control',

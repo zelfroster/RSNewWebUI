@@ -26,13 +26,30 @@
     height: fit-content;
   }
 
+  //  A transfer's chunk map. It was 32px tall to hold a centred percentage;
+  //  with the number moved out beside it, the bar only has to be readable.
+  &-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+
+    &__percent {
+      flex: none;
+      min-width: 3.5rem;
+      text-align: right;
+      color: var(--ink-dim);
+      font-size: var(--t-meta);
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
   &-chunks {
     position: relative;
-    margin-top: 0.5rem;
-    width: 100%;
-    height: 2rem;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 8px;
     display: flex;
-    border-radius: var(--r-sm);
+    border-radius: var(--r-full);
     overflow: hidden;
     background-color: var(--ground);
 
@@ -56,12 +73,5 @@
       }
     }
 
-    &__percent {
-      position: absolute;
-      inset: 0;
-      margin: auto;
-      width: fit-content;
-      height: fit-content;
-    }
   }
 }

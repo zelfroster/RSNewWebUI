@@ -22,8 +22,8 @@ const SignedIdentity = () => {
         pgpPassword: passphrase,
       },
       async (data) => {
-        //  Only .catch() used to clear this, and a refused passphrase is a
-        //  perfectly valid answer: the button stayed on "Creating…" for good.
+        //  Cleared here, not only in .catch(): a refused passphrase is a
+        //  valid answer, and the button would otherwise stay on "Creating…".
         submitting = false;
         if (data && data.retval) await peopleUtil.refreshOwnIds(previousIds);
         const message = data && data.retval
@@ -161,9 +161,9 @@ const CreateIdentity = () => {
 //  updateIdentity(id, name, avatar, pseudonimous, pgpPassword) takes the avatar
 //  as a mandatory parameter and p3IdService assigns it unconditionally
 //  (`group.mImage = avatar`). Leaving it out of the request does not mean "keep
-//  the one you have", it means "replace it with nothing": every edit used to
-//  erase the picture. So the current one is always sent back, unless the user
-//  picked another.
+//  the one you have", it means "replace it with nothing" -- it erases the
+//  picture. So the current one is always sent back, unless the user picked
+//  another.
 function avatarPayload(details, replacement) {
   if (replacement !== undefined) return { mData: { base64: replacement } };
   const current = details && details.mAvatar && details.mAvatar.mData
@@ -207,8 +207,8 @@ const SignedEditIdentity = () => {
 };
 
 const EditIdentity = () => {
-  //  The field used to open empty and Save sent it as it stood, so an edit
-  //  meant for the avatar alone renamed the identity to nothing.
+  //  The field opens with the current name, and Save sends it as it stands:
+  //  opening it empty renames the identity to nothing on an avatar-only edit.
   let name;
   let avatar;
   let avatarPreview = '';
@@ -313,10 +313,9 @@ const DeleteIdentity = ({ id, name }) => widget.confirmMessage({
     '/rsIdentity/deleteIdentity',
     { id },
     async (data) => {
-      //  Nothing used to refresh the own identities after this, and
-      //  watchOwnIds only listens for the event refreshOwnIds emits:
-      //  the deleted identity stayed in the list. The answer was not
-      //  read either -- a refused delete still announced success.
+      //  watchOwnIds only listens for the event refreshOwnIds emits, so
+      //  without this the deleted identity stays in the list. The answer
+      //  has to be read too: a refused delete must not announce success.
       const done = Boolean(data && data.retval);
       if (done) {
         peopleUtil.invalidateOwnIds();
@@ -329,6 +328,5 @@ const DeleteIdentity = ({ id, name }) => widget.confirmMessage({
 });
 
 //  Only these three are reachable: the details pane and the sidebar open them
-//  as modals. The "Own Identities" widget that used to be exported here, and
-//  the Identity card it rendered, were routed nowhere.
+//  as modals.
 module.exports = { CreateIdentity, EditIdentity, DeleteIdentity };

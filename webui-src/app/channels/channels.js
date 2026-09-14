@@ -86,9 +86,9 @@ const Layout = () => {
 
   return {
     oninit: () => {
-      //  The scope predicate used to be commented out, so it returned undefined
-      //  and setBackgroundTask stopped after the first interval: the channel list
-      //  was loaded once and never refreshed while the page stayed open. Same
+      //  The scope predicate has to return a boolean: setBackgroundTask stops
+      //  after the first interval on undefined, and the list is then never
+      //  refreshed while the page stays open. Same
       //  period as the boards list, which asks the same kind of question -- a
       //  five second poll of a whole summaries list is a lot to pay on a phone.
       rs.setBackgroundTask(getChannels.load, CHANNEL_LIST_REFRESH_MS, () =>

@@ -1247,8 +1247,6 @@ const ChatHubState = {
   hashingError: '',
   attachedImage: null,
   //  Per room, because the hub switches rooms without unmounting the composer.
-  //  The composer used to be uncontrolled -- it read and wrote textarea.value
-  //  directly -- which is why there was nowhere to keep this.
   drafts: {},
   showEmojiPicker: false,
   emojiSearch: '',
@@ -1320,13 +1318,10 @@ function autoResizeTextarea(el) {
   if (!el) return;
   el.style.height = 'auto';
   const scrollHeight = el.scrollHeight;
-  //  Both bounds come from the stylesheet, not from here.
-  //
-  //  The floor used to be a hardcoded 40px written as an inline style -- which
-  //  outranks every rule -- so the field stood taller than the tools beside it
-  //  and the row could not be aligned from CSS at all. The ceiling used to be
-  //  a hardcoded 160 while the CSS clipped at 140 with overflow hidden, so
-  //  anything between the two was cut off instead of scrolling.
+  //  Both bounds come from the stylesheet, not from here. A number written
+  //  inline outranks every rule, so the row could not then be aligned from CSS
+  //  at all -- and a ceiling that disagrees with the CSS clip cuts text off
+  //  instead of scrolling it.
   const style = getComputedStyle(el);
   const floor = parseFloat(style.minHeight) || 0;
   const maxHeight = parseFloat(style.maxHeight) || Infinity;

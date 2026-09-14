@@ -573,28 +573,48 @@
     margin-top: 0.2rem;
   }
 
-  //  A tag's colour belongs to the tag, and the core owns it -- it arrives as
-  //  the custom property --tag. The fill and the edge are mixed down from it
-  //  here, instead of being spelled in JS as alpha appended to a hex string.
-  .mail-card-tag-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: var(--t-label);
-    font-weight: var(--w-state);
-    padding: 0.1rem 0.45rem;
-    border-radius: var(--r-sm);
-    border: 1px solid color-mix(in srgb, var(--tag) 25%, transparent);
-    background: color-mix(in srgb, var(--tag) 12%, transparent);
-    color: var(--tag);
-  }
+}
 
-  .mail-card-tag-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: var(--r-full);
-    background: var(--tag);
-  }
+//  A stand-in, not the mail's own words: quieter, and italic so it does not
+//  read as a subject that happens to be parenthesised. A row being unread or
+//  selected does not make its missing subject worth emphasising.
+//
+//  Spelled out through those two states rather than on its own: they set the
+//  subject's colour and weight from three and four classes deep, and a bare
+//  `.is-placeholder` would silently lose to both.
+.mail-card-item .mail-card-subject.is-placeholder,
+.mail-card-item.unread .mail-card-subject.is-placeholder,
+.mail-card-item.selected .mail-card-subject.is-placeholder,
+.table-pagination-container table.mails td.cell-subject span.is-placeholder,
+.table-pagination-container table.mails tr.unread td.cell-subject span.is-placeholder,
+.table-pagination-container table.mails tr.selected td.cell-subject span.is-placeholder {
+  color: var(--ink-faint);
+  font-style: italic;
+  font-weight: var(--w-body);
+}
+
+//  A tag's colour belongs to the tag, and the core owns it -- it arrives as
+//  the custom property --tag. The fill and the edge are mixed down from it
+//  here, instead of being spelled in JS as alpha appended to a hex string.
+//  One badge, used by the cards, the reading pane and the table column.
+.mail-card-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: var(--t-label);
+  font-weight: var(--w-state);
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--r-sm);
+  border: 1px solid color-mix(in srgb, var(--tag) 25%, transparent);
+  background: color-mix(in srgb, var(--tag) 12%, transparent);
+  color: var(--tag);
+}
+
+.mail-card-tag-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--tag);
 }
 
 // ==========================================================================
@@ -699,6 +719,22 @@
       text-align: center;
       padding-left: 0.4rem;
       padding-right: 0.4rem;
+    }
+
+    //  Named tag badges, the same object the cards use, in the last column.
+    //  No width of its own: the fixed columns are already spoken for and the
+    //  spacer after this one still takes whatever is left.
+    col.col-tags,
+    th.col-tags,
+    td.cell-tags {
+      text-align: left;
+      padding-left: 0.4rem;
+      padding-right: 0.4rem;
+      white-space: nowrap;
+    }
+
+    td.cell-tags {
+      .mail-card-tag-badge + .mail-card-tag-badge { margin-left: 0.25rem; }
     }
 
     col.col-date,
@@ -1168,8 +1204,8 @@ input.star-check {
 }
 
 //  Label fixed at the start of the line, chips scrolling beside it. A
-//  broadcast can carry several hundred addresses, and they used to wrap down
-//  the whole pane and push the message itself off the screen.
+//  broadcast can carry several hundred addresses, which would otherwise wrap
+//  down the whole pane and push the message itself off the screen.
 .msg-recipients-row {
   display: flex;
   align-items: flex-start;
@@ -1251,9 +1287,8 @@ input.star-check {
 
 .cell-from__row { cursor: pointer; }
 
-/* The emoji tool anchors its own popover. The offsets used to be written on
-   the popover itself -- bottom: 50px, left: 130px -- which put it wherever
-   those numbers happened to land rather than above the button. */
+/* The emoji tool anchors its own popover. Offsets written on the popover
+   itself put it wherever those numbers land rather than above the button. */
 .mail-tool-btn__anchor {
   position: relative;
   display: inline-flex;
@@ -1337,8 +1372,8 @@ input.star-check {
   &__name { min-width: 0; overflow-wrap: anywhere; color: var(--ink); }
   &__size { flex: none; color: var(--ink-dim); font-size: var(--t-meta); }
 
-  //  A real button, so it is reachable and announced -- it used to be an icon
-  //  with an onclick and a cursor.
+  //  A real button, so it is reachable and announced, rather than an icon
+  //  carrying an onclick and a cursor.
   &__remove {
     @include btn-close;
 
@@ -1359,18 +1394,6 @@ input.star-check {
 }
 
 //  The row of small squares beside a subject in the table view.
-.mail-tags-container {
-  display: inline-flex;
-  gap: 0.25rem;
-}
-
-.mail-tag-badge {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: var(--r-sm);
-}
-
 .mail-body-container {
   background: var(--surface);
   border: 1px solid var(--line-soft);
@@ -1866,6 +1889,14 @@ input.star-check {
         button.spam-btn {
           font-size: var(--t-label) !important;
         }
+      }
+
+      //  Named badges do not fit a phone row; the card view is what a phone
+      //  gets anyway, and it shows the tags in full.
+      col.col-tags,
+      th.col-tags,
+      td.cell-tags {
+        display: none !important;
       }
 
       // Compact Date column

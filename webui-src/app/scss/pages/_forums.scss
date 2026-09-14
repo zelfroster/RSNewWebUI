@@ -90,12 +90,6 @@ table.forums tr.hidden {
   display: none;
 }
 
-#searchforum {
-  position: relative;
-  margin-left: 250px;
-  /* top: 50px; */
-}
-
 #forumdetails {
   position: relative;
   padding: 10px;
@@ -390,11 +384,6 @@ table.threads {
     }
   }
 
-  #searchforum {
-    margin-left: 0;
-    width: 100%;
-  }
-
 }
 table.threadreply th:nth-child(2) {
   width: 50%;
@@ -613,8 +602,7 @@ table.threadreply tr:hover {
 
 /* The shared media-item hides its description at phone widths (_media.scss,
  * !important) -- right for channel/board media grids, wrong for the forum
- * header, whose description was visible on phone before the shared component
- * replaced the old detail card. */
+ * header, whose description belongs on the phone header. */
 @media (max-width: 768px) {
   .forum-detail-heading + .media-item .media-item__desc {
     display: block !important;

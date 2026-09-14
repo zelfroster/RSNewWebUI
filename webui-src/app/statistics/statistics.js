@@ -295,22 +295,16 @@ module.exports = {
     }
 
     return m('.statistics-container', [
-      // ── Left pane: header card + navigation ──
-      m('.statistics-left-pane', [
-        m('.statistics-header-card', [
-          m('.statistics-header-card__title', [
-            icon('chart-pie'),
-            m('div', [m('h1', 'Statistics'), m('p', 'Traffic & routing stats')]),
-          ]),
-        ]),
-        m('nav.statistics-nav', NAV_SECTIONS.map((section) =>
-          m('button.statistics-nav-item[type=button]', {
-            class: activeSection.id === section.id ? 'active' : '',
-            onclick: () => switchSection(section.id),
-            title: section.description,
-          }, [icon(section.icon, { size: 19 }), m('span', section.label)])
-        )),
-      ]),
+      //  The same rail Boards, Channels, Forums, Files and Config use.
+      m(widget.Sidebar, {
+        title: 'Statistics',
+        tabs: NAV_SECTIONS.map((section) => section.id),
+        labels: Object.fromEntries(NAV_SECTIONS.map((s) => [s.id, s.label])),
+        icons: Object.fromEntries(NAV_SECTIONS.map((s) => [s.id, s.icon])),
+        titles: Object.fromEntries(NAV_SECTIONS.map((s) => [s.id, s.description])),
+        active: activeSection.id,
+        onSelect: switchSection,
+      }),
 
       // ── Mobile tab bar (visible only on small screens) ──
       m('.statistics-mobile-tabs', [

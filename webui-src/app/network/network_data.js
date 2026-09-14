@@ -12,7 +12,7 @@ async function refreshIds() {
 //  once they fill the browser's six sockets for minutes on a slow link, and
 //  every interactive request (opening a chat, the status poll) queues behind.
 //  So: a few at a time, the list filling as answers land, and the result kept
-//  for a while, since every page mount used to redo the whole sweep.
+//  for a while, so a page mount does not redo the whole sweep.
 const SWEEP_CONCURRENCY = 3;
 const GPG_DETAILS_TTL_MS = 5 * 60 * 1000;
 let refreshInFlight = null;

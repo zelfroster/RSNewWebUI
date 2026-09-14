@@ -263,8 +263,7 @@ const SearchBar = () => {
   return {
     view: (v) =>
       m(widget.SearchField, {
-        id: 'searchforum',
-        placeholder: 'Search subject',
+        placeholder: 'Search forums',
         value: searchString,
         onclear: () => { searchString = ''; updatedisplayforums(); },
         oninput: (e) => {

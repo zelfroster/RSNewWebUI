@@ -14,6 +14,7 @@ const RS_MSG_BOXMASK = 0x000f;
 const RS_MSG_INBOX = 0x00;
 const RS_MSG_SENTBOX = 0x01;
 const RS_MSG_OUTBOX = 0x03;
+const RS_MSG_DRAFT = 0x04;
 const RS_MSG_DRAFTBOX = 0x05;
 const RS_MSG_TRASH = 0x000020;
 const RS_MSG_NEW = 0x10;
@@ -36,6 +37,83 @@ const MSG_ADDRESS_MODE_CC = 0x02;
 const MSG_ADDRESS_MODE_BCC = 0x03;
 
 const BOX_ALL = 0x06;
+
+//  What counts as a draft, in one place. The Drafts folder and the reading
+//  pane disagreed: the folder listed anything with the DRAFT bit, the toolbar
+//  asked for the exact DRAFTBOX box value (OUTGOING|DRAFT) -- so a draft the
+//  core had not also marked OUTGOING appeared in the folder and then opened
+//  with the Reply / Forward / Spam toolbar of a received mail.
+//  0x08 is not a box value rsmail.h defines; it is kept because the folder
+//  filter has always listed it and dropping it would change what Drafts shows.
+//  Mail with no subject is common enough (invites, system notices, replies
+//  sent from the Qt client) that a blank cell reads as a rendering fault. The
+//  table left it blank while the cards and the reading pane already said this.
+const NO_SUBJECT = '(No Subject)';
+function subjectOf(title) {
+  return (title && title.trim()) || NO_SUBJECT;
+}
+
+function isDraftMessage(msgflags) {
+  return (msgflags & RS_MSG_DRAFT) !== 0 || (msgflags & 0x08) !== 0;
+}
+
+//  Identity details, fetched once on the first miss. Callers read this
+//  synchronously from a view and the redraw brings the avatar and nickname in.
+//  Sender details were only ever fetched from the message's own `from`, so a
+//  draft the core left without one showed a jdenticon while the same identity
+//  showed its real photo in the list.
+const GxsDetailFetches = new Set();
+function identityDetails(addr) {
+  if (!addr) return null;
+  if (MailGxsDetailsCache[addr]) return MailGxsDetailsCache[addr];
+  if (!GxsDetailFetches.has(addr)) {
+    GxsDetailFetches.add(addr);
+    rs.rsJsonApiRequest('/rsIdentity/getIdDetails', { id: addr }, (data) => {
+      GxsDetailFetches.delete(addr);
+      if (!data || !data.details) return;
+      MailGxsDetailsCache[addr] = data.details;
+      UserNicknamesCache[addr] = data.details.mNickname || '';
+      m.redraw();
+    });
+  }
+  return null;
+}
+
+//  rs.userList.username() hands back the id itself while its bulk fetch is in
+//  flight, and keeps doing so for an identity this node has never seen -- so
+//  the To: chips were 32-character hex strings. That is not a name: shorten it
+//  so the row stays readable, and keep the full id in the title.
+function identityLabel(addr) {
+  if (!addr) return '';
+  const name = UserNicknamesCache[addr]
+    || identityDetails(addr)?.mNickname
+    || rs.userList.username(addr);
+  if (!name || name === addr) return `${addr.slice(0, 8)}…`;
+  return name;
+}
+
+//  A draft was written BY us, so an empty `from` means the core never recorded
+//  which identity -- not that the sender is a stranger. Fall back to our first
+//  identity rather than showing the mail as being from [Unknown].
+//
+//  Read synchronously from a view, so the fetch is kicked off on the first miss
+//  and the redraw picks it up. people_util caches for 30s, so this is one
+//  request, not one per row.
+let OwnIds = [];
+let ownIdsPending = false;
+function draftSenderId(addr) {
+  if (peopleUtil.isUsableIdentityId(addr)) return addr;
+  if (!OwnIds.length && !ownIdsPending) {
+    ownIdsPending = true;
+    peopleUtil.ownIds((ids) => {
+      ownIdsPending = false;
+      if (!ids || !ids.length) return;
+      OwnIds = ids;
+      m.redraw();
+    });
+  }
+  return OwnIds[0] || '';
+}
 
 const MessageCache = {};
 const UserNicknamesCache = {};
@@ -268,6 +346,15 @@ const MessageSummary = () => {
         && !(currentFlags & RS_MSG_TRASH)
         && !(currentFlags & RS_MSG_SPAM);
       const currentStatus = isUnread ? 'unread' : 'read';
+      const isDraft = isDraftMessage(currentFlags);
+      const hideJudgements = v.attrs.category === 'drafts';
+      //  An old draft can carry no `from` at all; it was still written by us.
+      const fromAddr = isDraft
+        ? draftSenderId(details.from?._addr_string)
+        : details.from?._addr_string;
+      const fromName = fromUserInfo && Number(fromUserInfo.mId) !== 0
+        ? fromUserInfo.mNickname
+        : (fromAddr && identityLabel(fromAddr)) || '[Unknown]';
 
       return m(
         'tr.msgbody',
@@ -287,11 +374,15 @@ const MessageSummary = () => {
           },
         },
         [
-          m(
+          //  Star and spam are judgements about mail someone sent you; a draft
+          //  is yours and unsent. In the Drafts folder the columns come out
+          //  altogether -- a header over nothing but blank cells reads as
+          //  broken -- so the header and the cells key off the same folder.
+          !hideJudgements && m(
             'td.cell-star',
-            m(`input.star-check[type=checkbox][id=msg-${v.attrs.details.msgId}]`, { checked: isStarred }),
+            isDraft ? null : m(`input.star-check[type=checkbox][id=msg-${v.attrs.details.msgId}]`, { checked: isStarred }),
             // Use label with  [for] to manipulate hidden checkbox
-            m(
+            isDraft ? null : m(
               `label.star-check[for=msg-${v.attrs.details.msgId}]`,
               {
                 onclick: starMessage,
@@ -304,16 +395,9 @@ const MessageSummary = () => {
           m('td.cell-subject', [
             m('.cell-subject__row', [
               files && files.length > 0 && icon('paperclip', { class: 'mobile-subject-clip',  title: `${files.length} attachment(s)` }),
-              m('span', details.title),
-              details.msgtags && details.msgtags.length > 0 && m('.mail-tags-container',
-                details.msgtags.map((tagId) => {
-                  const tag = getTagDetails(tagId);
-                  return m('span.mail-tag-badge', {
-                    title: tag.name,
-                    style: { backgroundColor: tag.color },
-                  });
-                })
-              )
+              m('span', {
+                class: subjectOf(details.title) === NO_SUBJECT ? 'is-placeholder' : '',
+              }, subjectOf(details.title)),
             ])
           ]),
           m(
@@ -322,9 +406,9 @@ const MessageSummary = () => {
               '.cell-from__row',
               {
                 onmouseenter: (e) => {
-                  if (!details?.from?._addr_string) return;
-                  const gxsId = details.from._addr_string;
-                  const name = fromUserInfo && Number(fromUserInfo.mId) !== 0 ? fromUserInfo.mNickname : '[Unknown]';
+                  if (!fromAddr) return;
+                  const gxsId = fromAddr;
+                  const name = fromName;
                   const rect = e.currentTarget.getBoundingClientRect();
                   MailHoverState.hoveredUser = { gxsId, name, rect };
                   if (fromUserInfo) MailGxsDetailsCache[gxsId] = fromUserInfo;
@@ -347,16 +431,16 @@ const MessageSummary = () => {
                 m(peopleUtil.UserAvatar, {
                   avatar: fromUserInfo?.mAvatar,
                   firstLetter: fromUserInfo?.mNickname,
-                  identityId: details.from?._addr_string,
+                  identityId: fromAddr,
                   size: 24,
                 }),
-                m('span', fromUserInfo && Number(fromUserInfo.mId) !== 0 ? fromUserInfo.mNickname : '[Unknown]'),
+                m('span', fromName),
               ]
             )
           ),
-          m(
+          !hideJudgements && m(
             'td.cell-spam',
-            m(
+            isDraft ? null : m(
               'button.spam-btn[type=button]',
               {
                 onclick: spamMessage,
@@ -367,6 +451,13 @@ const MessageSummary = () => {
             )
           ),
           m('td.cell-date', { title: new Date(details.ts * 1000).toLocaleString() }, formatMailDateTime(details.ts)),
+          m('td.cell-tags', (details.msgtags || []).map((tagId) => {
+            const tag = getTagDetails(tagId);
+            return m('span.mail-card-tag-badge', {
+              title: tag.name,
+              style: { '--tag': tag.color },
+            }, [m('span.mail-card-tag-dot'), tag.name]);
+          })),
           m('td.cell-spacer'),
         ]
       );
@@ -424,10 +515,12 @@ const MessageCard = () => {
       if (MessageCache[msg.msgId] && msg.msgflags !== undefined) {
         MessageCache[msg.msgId].msgflags = msg.msgflags;
       }
-      const senderAddr = details.from?._addr_string || msg.from?._addr_string;
-      const senderName = UserNicknamesCache[senderAddr] || rs.userList.username(senderAddr) || '[Unknown]';
-      const senderInfo = MailGxsDetailsCache[senderAddr];
       const currentFlags = msg.msgflags !== undefined ? msg.msgflags : (details.msgflags || 0);
+      const isDraft = isDraftMessage(currentFlags);
+      const rawSenderAddr = details.from?._addr_string || msg.from?._addr_string;
+      const senderAddr = isDraft ? draftSenderId(rawSenderAddr) : rawSenderAddr;
+      const senderName = (senderAddr && identityLabel(senderAddr)) || '[Unknown]';
+      const senderInfo = MailGxsDetailsCache[senderAddr];
       const flag = currentFlags & 0xf0;
       const isUnread = (flag === RS_MSG_NEW || flag === RS_MSG_UNREAD_BY_USER)
         && !(currentFlags & RS_MSG_TRASH)
@@ -485,10 +578,15 @@ const MessageCard = () => {
               m('.mail-card-date', { title: new Date((msg.ts?.xint64 || msg.ts || details.ts) * 1000).toLocaleString() }, formatMailDate(msg.ts?.xint64 || msg.ts || details.ts)),
             ]),
             m('.mail-card-row-subject', [
-              m('.mail-card-subject', { title: details.title || msg.title }, details.title || msg.title || '(No Subject)'),
+              m('.mail-card-subject', {
+                class: subjectOf(details.title || msg.title) === NO_SUBJECT ? 'is-placeholder' : '',
+                title: details.title || msg.title,
+              }, subjectOf(details.title || msg.title)),
               m('.mail-card-indicators', [
                 filesCount > 0 && icon('paperclip', { class: 'mail-card-clip',  title: `${filesCount} attachment(s)` }),
-                m(
+                //  Star and spam are judgements about mail someone sent you.
+                //  A draft is yours and unsent, so neither applies to it.
+                !isDraft && m(
                   'span.mail-card-spam-btn[role=button]',
                   {
                     class: isSpam ? 'spammed' : '',
@@ -516,7 +614,7 @@ const MessageCard = () => {
                   },
                   icon(isSpam ? 'fire-fill' : 'fire')
                 ),
-                m(
+                !isDraft && m(
                   'span.mail-card-star-btn[role=button]',
                   {
                     class: isStarred ? 'starred' : '',
@@ -611,16 +709,15 @@ const ReadingPanePlaceholder = {
     ]),
 };
 
-//  One recipient line. A broadcast can carry hundreds of addresses, and the
-//  list used to push the message itself off the screen -- the chips scroll in
-//  a box of their own now, with the label fixed beside them.
+//  One recipient line. A broadcast can carry hundreds of addresses, so the
+//  chips scroll in a box of their own, with the label fixed beside them,
+//  rather than wrapping down the pane and pushing the message off the screen.
 function recipientRow(label, keys) {
   if (!keys || keys.length === 0) return null;
   return m('.msg-recipients-row', [
     m('span.recipient-label', label),
     m('.msg-recipients-row__list', keys.map((addr) => {
-      const name = UserNicknamesCache[addr] || rs.userList.username(addr) || addr.slice(0, 8);
-      return m('span.recipient-chip', { title: addr }, name);
+      return m('span.recipient-chip', { title: addr }, identityLabel(addr));
     })),
     keys.length > 8 && m('span.msg-recipients-row__count', `${keys.length}`),
   ]);
@@ -678,7 +775,7 @@ const MessageView = () => {
         MessageCache[msgId] = msgDetails;
         MailData.msgId = msgDetails.msgId;
         MailData.sender = msgDetails.from;
-        MailData.subject = msgDetails.title || '(No Subject)';
+        MailData.subject = subjectOf(msgDetails.title);
         MailData.timeStamp = msgDetails.ts;
         MailData.msgtags = msgDetails.msgtags || (MessageCache[msgId] && MessageCache[msgId].msgtags) || [];
         MailData.msgflags = msgDetails.msgflags || 0;
@@ -799,12 +896,14 @@ const MessageView = () => {
       }
     },
     view: (v) => {
-      const senderAddr = MailData.sender?._addr_string;
-      const senderName = (senderAddr && UserNicknamesCache[senderAddr]) || (senderAddr && rs.userList.username(senderAddr)) || '[Unknown]';
+      const isDraft = isDraftMessage(MailData.msgflags);
+      const senderAddr = isDraft
+        ? draftSenderId(MailData.sender?._addr_string)
+        : MailData.sender?._addr_string;
+      const senderName = (senderAddr && identityLabel(senderAddr)) || '[Unknown]';
       const toKeys = Object.keys(MailData.toList || {});
       const ccKeys = Object.keys(MailData.ccList || {});
       const bccKeys = Object.keys(MailData.bccList || {});
-      const isDraft = (MailData.msgflags & RS_MSG_BOXMASK) === RS_MSG_DRAFTBOX;
 
       return m(
         '.msg-view.mail-reading-card',
@@ -880,9 +979,9 @@ const MessageView = () => {
                 })),
             ]),
             m('.msg-details', [
-              MailData.sender &&
+              senderAddr &&
                 m(peopleUtil.UserAvatar, {
-                  avatar: MailData.avatar,
+                  avatar: MailData.avatar || identityDetails(senderAddr)?.mAvatar,
                   firstLetter: senderName,
                   identityId: senderAddr,
                   size: 46,
@@ -910,7 +1009,7 @@ const MessageView = () => {
                       new Date(MailData.timeStamp * 1000).toLocaleString()
                     ),
                 ]),
-                //  Bcc is on own sent mail only; the old view showed it.
+                //  Bcc is on own sent mail only.
                 recipientRow('To:', toKeys),
                 recipientRow('Cc:', ccKeys),
                 recipientRow('Bcc:', bccKeys),
@@ -1043,6 +1142,17 @@ function sortList(list) {
         valB = bFrom.toLowerCase();
         break;
       }
+      case 'tags': {
+        const firstTag = (msg) => {
+          const tags = MessageCache[msg.msgId]?.msgtags || msg.msgtags || [];
+          return tags.length ? getTagDetails(tags[0]).name.toLowerCase() : '';
+        };
+        //  Untagged mail sorts last in both directions: it is the absence of
+        //  the thing being sorted by, not the lowest value of it.
+        valA = firstTag(msgA) || '\uffff';
+        valB = firstTag(msgB) || '\uffff';
+        break;
+      }
       case 'date':
       default: {
         const aTs = MessageCache[msgA.msgId]?.ts || msgA.ts?.xint64 || msgA.ts || 0;
@@ -1108,9 +1218,9 @@ const Table = () => {
       if (currentPage >= totalPages) currentPage = totalPages - 1;
       if (currentPage < 0) currentPage = 0;
 
-      //  `.pagination` is already styled inside .table-pagination-container --
-      //  the inline block that used to sit here was overriding a rule that had
-      //  it right. A disabled button already looks disabled, too.
+      //  `.pagination` is already styled inside .table-pagination-container,
+      //  so nothing is spelled inline here. A disabled button already looks
+      //  disabled, too.
       const paginationUI = totalItems > pageSize && m('.pagination', [
         m('button.is-icon[type=button][aria-label=Previous page]', {
           disabled: currentPage === 0,
@@ -1124,15 +1234,20 @@ const Table = () => {
         }, icon('chevron-right'))
       ]);
 
+      //  Drafts cannot be starred or marked as spam, so in that folder the two
+      //  columns are dropped rather than left as headers over blank cells.
+      const hideJudgements = v.attrs.category === 'drafts';
+
       return m('.table-pagination-container', [
         m('table.mails', [
           m('tr', [
-            renderHeader('starred', icon('star'), true),
+            !hideJudgements && renderHeader('starred', icon('star'), true),
             renderHeader('attachments', icon('paperclip'), true),
             renderHeader('subject', 'Subject'),
             renderHeader('from', 'From'),
-            renderHeader('spam', icon('fire'), true),
+            !hideJudgements && renderHeader('spam', icon('fire'), true),
             renderHeader('date', 'Date & time'),
+            renderHeader('tags', 'Tags'),
             m('th.col-spacer'),
           ]),
           tbody,
@@ -1166,11 +1281,9 @@ const activeSideLink = {
   quicksideactive: -1,
 };
 
-//  Folder glyphs. They used to carry nine unrelated colours -- a blue inbox,
-//  an emerald outbox, an amber sent tray -- which made the column read as a
-//  legend rather than a list of places, and left selection with nothing of its
-//  own to say. They inherit the link's colour now, so the selected folder is
-//  the only coloured thing in the column.
+//  Folder glyphs inherit the link's colour, so the selected folder is the only
+//  coloured thing in the column. A colour per folder would make it read as a
+//  legend rather than a list of places, and leave selection nothing to say.
 //
 //  The five Quick View entries are tags, where the colour IS the data: those
 //  keep it, taken from the tag the core defines rather than written here.
@@ -1283,7 +1396,9 @@ module.exports = {
   RS_MSG_INBOX,
   RS_MSG_SENTBOX,
   RS_MSG_OUTBOX,
+  RS_MSG_DRAFT,
   RS_MSG_DRAFTBOX,
+  isDraftMessage,
   RS_MSG_NEW,
   RS_MSG_UNREAD_BY_USER,
   RS_MSG_STAR,

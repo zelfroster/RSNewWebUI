@@ -151,5 +151,6 @@
      shadow in the product lifts a sheet off the page. --ring is the focus
      affordance, which is not depth but is spelled the same way. */
   --lift: 0 12px 32px rgb(var(--ink-rgb) / 0.18);
+  --lift-sm: 0 4px 12px rgb(var(--ink-rgb) / 0.12);  /* tooltips, popovers */
   --ring: 0 0 0 3px rgb(var(--brand-rgb) / 0.22);
 }

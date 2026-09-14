@@ -122,6 +122,7 @@ const MAP = {
   stopwatch: 'timer',
   stream: 'list-dashes',
   'sync-alt': 'arrows-clockwise',
+  tag: 'tag',
   'tachometer-alt': 'gauge',
   'th-large': 'squares-four',
   'thumbs-down': 'thumbs-down',

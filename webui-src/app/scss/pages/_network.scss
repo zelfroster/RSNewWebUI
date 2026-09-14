@@ -752,11 +752,9 @@
 }
 
 // ==========================================================================
-// Conversion pass: the rules that used to live in inline `style:` attributes.
-//
-// Those attributes carried a second palette (slate greys, a #3b82f6 blue) that
-// no stylesheet could reach, which is why this screen never followed the
-// tokens. Everything below is scoped to the network screen.
+// The network screen's own rules, scoped here rather than carried as inline
+// `style:` attributes -- which no stylesheet can reach, and which is how this
+// screen ended up with a second palette outside the tokens.
 // ==========================================================================
 
 .network-container {

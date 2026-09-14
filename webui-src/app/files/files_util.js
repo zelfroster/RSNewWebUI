@@ -174,9 +174,13 @@ function fileAction(hash, action) {
 const ProgressBar = () => {
   return {
     view: (v) =>
-      m('.progress-bar-chunks', [
-        v.attrs.chunksInfo.chunks.map((item) => m(`span.chunk[data-chunkVal=${item}]`)),
-        m('span.progress-bar-chunks__percent', v.attrs.rate.toPrecision(3) + '%'),
+      //  The percentage sits beside the bar, not centred inside it: the bar
+      //  is a few pixels tall now, and a label over it was the reason it had
+      //  to be 32px in the first place.
+      m('.progress-bar-row', [
+        m('.progress-bar-chunks',
+          v.attrs.chunksInfo.chunks.map((item) => m(`span.chunk[data-chunkVal=${item}]`))),
+        m('span.progress-bar-row__percent', `${v.attrs.rate.toFixed(1)}%`),
       ]),
   };
 };
@@ -227,13 +231,15 @@ const File = () => {
         });
       }
       return m('.file-view', { style: { display: info.isSearched ? 'block' : 'none' } }, [
-        m('.file-view__heading', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start' } }, [
+        m('.file-view__heading', [
           m('h6', info.fname),
           chunkStrat !== undefined &&
           direction === 'down' && [
             m('.file-view__heading-chunk', [
-              m('label[for=chunkTag]', 'Set Chunk Strategy: '),
-              m('select[id=chunkTag]', { value: chunkStrat, onchange: changeChunkStrategy }, [
+              //  Keyed by hash: one `chunkTag` id was shared by every row, so
+              //  the label focused whichever select happened to render last.
+              m(`label[for=chunk-${info.hash}]`, 'Chunk strategy'),
+              m(`select[id=chunk-${info.hash}]`, { value: chunkStrat, onchange: changeChunkStrategy }, [
                 Object.keys(chunkStrats).map((strat) =>
                   m('option', { value: strat }, chunkStrats[strat])
                 ),
@@ -317,7 +323,9 @@ const MyFilesTable = () => {
   return {
     view: (v) =>
       m('table.myfiles', [
-        m('tr', [m('th', ''), m('th', 'My Directories'), m('th', 'Size')]),
+        //  No separate twist column: the chevron lives in the name cell, so
+        //  it indents with the row it belongs to.
+        m('tr', [m('th', 'My Directories'), m('th', 'Size')]),
         v.children,
       ]),
   };
@@ -328,10 +336,9 @@ const FriendsFilesTable = () => {
     view: (v) =>
       m('table.friendsfiles', [
         m('tr', [
-          m('th', ''),
           m('th', 'Friends Directories'),
           m('th', 'Size'),
-          m('th', icon('download')),
+          m('th', 'Download'),
         ]),
         v.children,
       ]),

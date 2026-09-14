@@ -84,13 +84,7 @@ const Messages = {
         Messages.outbox = Messages.all.filter(
           (msg) => (msg.msgflags & util.RS_MSG_BOXMASK) === util.RS_MSG_OUTBOX
         );
-        Messages.drafts = Messages.all.filter(
-          (msg) =>
-            (msg.msgflags & util.RS_MSG_BOXMASK) === util.RS_MSG_DRAFTBOX ||
-            (msg.msgflags & 0x05) === 0x05 ||
-            (msg.msgflags & 0x04) !== 0 ||
-            (msg.msgflags & 0x08) !== 0
-        );
+        Messages.drafts = Messages.all.filter((msg) => util.isDraftMessage(msg.msgflags));
         Messages.trash = Messages.all.filter((msg) => msg.msgflags & util.RS_MSG_TRASH);
         Messages.starred = Messages.all.filter((msg) => msg.msgflags & util.RS_MSG_STAR);
         Messages.system = Messages.all.filter((msg) => msg.msgflags & util.RS_MSG_SYSTEM);
@@ -524,6 +518,7 @@ const MailComponent = () => {
                     })()
                   : m(
                       util.Table,
+                      { category: activeTab },
                       m(
                         'tbody',
                         sortedList.map((msg) =>

@@ -13,66 +13,6 @@
   background-color: var(--sunken);
 }
 
-// ── Left pane: sidebar with header card + navigation ──
-.statistics-left-pane {
-  @include nav-rail;
-
-  overflow-y: auto;
-}
-
-// ── Header card (top of left pane) ──
-.statistics-header-card {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--line-soft);
-  background: linear-gradient(135deg, var(--ground) 0%, var(--sunken) 100%);
-
-  &__title {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-
-    > .icon {
-      width: 22px; height: 22px;
-      color: var(--brand-deep);
-    }
-
-    h1 {
-      font-size: var(--t-h3);
-      font-weight: var(--w-label);
-      color: var(--ink);
-      margin: 0;
-    }
-
-    p {
-      margin: 0;
-      font-size: var(--t-meta);
-      color: var(--ink-dim);
-    }
-  }
-}
-
-// ── Navigation list ──
-.statistics-nav {
-  @include nav-rail-scroll;
-}
-
-.statistics-nav-item {
-  @include nav-rail-item;
-
-  //  It is a <button>, so it needs the element defaults undone before the
-  //  shared rules can read as a rail row.
-  width: 100%;
-  background: none;
-  box-shadow: none;
-  text-align: left;
-  white-space: nowrap;
-  cursor: pointer;
-
-  &:active { box-shadow: none; }
-
-  &.active { @include nav-rail-item-selected; }
-}
-
 // ── Mobile tab bar (hidden on desktop) ──
 .statistics-mobile-tabs {
   display: none;
@@ -94,15 +34,6 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-
-    // Desktop mode: text only (no icon) for a more compact appearance
-    .icon {
-      display: none;
-    }
-
-    .btn-text {
-      display: inline;
-    }
   }
 }
 
@@ -512,8 +443,8 @@
 
 // ── Responsive: phone mode ──
 @media (max-width: $bp-mobile), (max-width: $bp-narrow) and (max-height: $bp-short) {
-  // Hide left sidebar on mobile
-  .statistics-left-pane {
+  // Hide the rail on mobile; the tab bar below replaces it.
+  .statistics-container > .sidebar {
     display: none;
   }
 

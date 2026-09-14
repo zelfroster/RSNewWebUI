@@ -247,13 +247,8 @@
     align-items: center;
   }
 
-  /* Tooltips are anchored with a fixed -120px offset, which pushes them off
-     screen on a narrow viewport */
+  /* A centred tooltip can still overhang a narrow viewport; cap it. */
   .tooltiptext {
-    left: 0;
-    margin-left: 0;
-    min-width: 0;
-    width: max-content;
     max-width: 80vw;
   }
 }
@@ -263,19 +258,6 @@
    ========================================================================= */
 
 @include touch {
-  /* Hover-revealed helpers are unreachable without a pointer */
-  .tooltip .tooltiptext {
-    /* still hidden by default, but reachable by tapping the element */
-    &:focus,
-    &:focus-within {
-      visibility: visible;
-    }
-  }
-
-  .tooltip:focus-within .tooltiptext {
-    visibility: visible;
-  }
-
   /* Recipient autocomplete stays open while the field has focus; the list is
      only kept alive by :hover on desktop. */
   .compose-mail__recipients .recipients__input:focus-within .recipients__input-list {

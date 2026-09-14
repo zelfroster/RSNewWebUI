@@ -250,22 +250,20 @@ const SearchBar = () => {
   let searchString = '';
   return {
     view: (vnode) =>
-      m('.search-bar', [
-        m(widget.SearchField, {
-          placeholder: 'Search boards',
-          value: searchString,
-          oninput: (e) => {
-            searchString = e.target.value;
-            const query = searchString.toLowerCase();
-            if (vnode.attrs.list) {
-              vnode.attrs.list.forEach((board) => {
-                const name = (board.mGroupName || board.name || '').toLowerCase();
-                board.isSearched = name.includes(query);
-              });
-            }
-          },
-        }),
-      ]),
+      m(widget.SearchField, {
+        placeholder: 'Search boards',
+        value: searchString,
+        oninput: (e) => {
+          searchString = e.target.value;
+          const query = searchString.toLowerCase();
+          if (vnode.attrs.list) {
+            vnode.attrs.list.forEach((board) => {
+              const name = (board.mGroupName || board.name || '').toLowerCase();
+              board.isSearched = name.includes(query);
+            });
+          }
+        },
+      }),
   };
 };
 

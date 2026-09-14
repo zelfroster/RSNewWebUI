@@ -44,18 +44,18 @@ function renderIdentityTooltip({ details, gxsId, name, rect, overlapAnchor = fal
       avatar,
       firstLetter: name,
       identityId: gxsId,
-      size: 56,
+      size: 48,
       isSquare: true,
     })),
     m('.tooltip-details', [
-      m('.tooltip-row', [m('span.tooltip-label', 'Identity name: '), m('span.tooltip-value', name)]),
-      m('.tooltip-row', [m('span.tooltip-label', 'Identity Id: '), m('span.tooltip-value.tooltip-id', gxsId)]),
+      m('.tooltip-row', [m('span.tooltip-label', 'Identity name:'), m('span.tooltip-value', name)]),
+      m('.tooltip-row', [m('span.tooltip-label', 'Identity Id:'), m('span.tooltip-value.tooltip-id', gxsId)]),
       details.mPgpId && details.mPgpId !== '0000000000000000' && m('.tooltip-row', [
-        m('span.tooltip-label', 'Node: '),
+        m('span.tooltip-label', 'Node:'),
         m('span.tooltip-value', `${rs.userList.username(details.mPgpId) || name} [${details.mPgpId}]`),
       ]),
       m('.tooltip-row', [
-        m('span.tooltip-label', 'Votes: '),
+        m('span.tooltip-label', 'Votes:'),
         m('span.tooltip-value', {
           class: votes >= 0 ? 'is-positive' : 'is-negative',
         }, `${votes >= 0 ? '+' : ''}${votes}`),

@@ -86,8 +86,8 @@ const EMOJI_DATA = {
 };
 
 //  Search keywords. One Unicode name per character, which is what makes
-//  `Search emoji` able to match anything at all -- the picker used to filter
-//  a list of bare characters, so every query returned everything.
+//  `Search emoji` able to match anything at all: the data is bare characters,
+//  which a query has nothing to match against.
 const EMOJI_NAMES = {
   '😀': 'grinning face', '😁': 'grinning face with smiling eyes', '😂': 'face with tears of joy',
   '😃': 'smiling face with open mouth', '😄': 'smiling face with open mouth and smiling eyes',
@@ -336,8 +336,8 @@ function insertEmojiIntoTextarea(emoji, onSelect) {
 }
 
 //  One picker for every surface that inserts an emoji: the chat composer, the
-//  mail composer, the forum thread composer. Its state is its own -- it used to
-//  read and write ChatHubState, which is why only chat could host it.
+//  mail composer, the forum thread composer. Its state is its own, so it does
+//  not need a host's store to live in.
 const EmojiPicker = () => {
   let search = '';
   let category = EMOJI_CATEGORIES[0];

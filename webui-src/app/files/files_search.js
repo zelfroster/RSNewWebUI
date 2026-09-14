@@ -86,10 +86,20 @@ const Layout = () => {
         actions: m(SearchBar),
       }),
       m('.widget__body', [
-        m('div.file-search-container', [
+        //  Nothing has been asked for yet: the two-pane split with an empty
+        //  Keywords list and a bare "Results" heading said nothing about what
+        //  to do next.
+        Object.keys(reqObj).length === 0
+          ? m('.empty', [
+            icon('search', { size: 28 }),
+            m('b', 'No searches yet'),
+            m('span', 'Type a file name above and press Search. Results arrive as '
+              + 'peers answer, so they can take a moment to appear.'),
+          ])
+          : m('div.file-search-container', [
           m('div.file-search-container__keywords', [
             m('.keywords-header', [
-              m('h5.bold', 'Keywords'),
+              m('h5', 'Keywords'),
               m(
                 'button.red.clear-btn',
                 {
@@ -124,7 +134,12 @@ const Layout = () => {
           ]),
           m('div.file-search-container__results', [
             Object.keys(fproxy.fileProxyObj).length === 0 || currentItem === 0
-              ? m('h5.bold', 'Results')
+              ? m('.empty', [
+                icon('search', { size: 24 }),
+                m('b', 'Waiting for answers'),
+                m('span', 'Peers reply as they find matches. Pick a search on the '
+                  + 'left to see what has come back.'),
+              ])
               : m('div.results-container', [
                 m(
                   'div.results-header',
@@ -157,7 +172,10 @@ const Layout = () => {
                         ),
                       ])
                     )
-                    : 'No Results.'
+                    : m('.empty', [
+                      m('b', 'No matches'),
+                      m('span', 'No peer has answered with a file by that name.'),
+                    ])
                 ),
               ]),
           ]),

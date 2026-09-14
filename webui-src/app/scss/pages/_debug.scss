@@ -51,12 +51,10 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: none;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
 
-  &:hover {
-    box-shadow: var(--lift);
-  }
+  //  A KPI card is a readout, not a control -- nothing happens when you click
+  //  it, so lifting it on hover promises an affordance that is not there.
+  box-shadow: none;
 
   &__icon {
     width: 46px;

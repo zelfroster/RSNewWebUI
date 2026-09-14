@@ -297,6 +297,20 @@
   color: var(--ink-body);
 }
 
+/// A floating hint. The same surface as a sheet, lifted less: it is over the
+/// page for a moment, not a thing you interact with.
+@mixin tip-surface {
+  box-sizing: border-box;
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--lift-sm);
+  color: var(--ink-body);
+  font-size: var(--t-meta);
+  line-height: 1.45;
+}
+
 /// The dimmed ground behind a sheet.
 @mixin sheet-backdrop {
   background: rgb(var(--ink-rgb) / 0.32);

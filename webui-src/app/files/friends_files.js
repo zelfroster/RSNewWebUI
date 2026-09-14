@@ -6,6 +6,30 @@ const fileDown = require('files/files_downloads');
 const icon = require('icon');
 const toast = require('toast');
 
+//  The transfer figures as one line of text, for the info tooltip. The full
+//  File card cannot live inside a table cell, but the numbers it shows can.
+function transferSummary(info, transferred) {
+  const total = info.size.xint64;
+  return [
+    `${rs.formatBytes(transferred)} of ${rs.formatBytes(total)}`,
+    `${rs.formatBytes(info.tfRate * 1024)}/s`,
+    `${info.peers.length} peer${info.peers.length === 1 ? '' : 's'}`,
+  ].join('  ·  ');
+}
+
+function transferStatus(info) {
+  const transferred = info.transfered.xint64;
+  const total = Number(info.size.xint64) || 0;
+  const pct = total ? Math.min(100, (transferred / total) * 100) : 0;
+  return m('span.friends-files__progress', [
+    m('span.friends-files__progress-pct', `${pct.toFixed(0)}%`),
+    icon('info-circle', {
+      class: 'friends-files__progress-info',
+      title: transferSummary(info, transferred),
+    }),
+  ]);
+}
+
 function displayfiles() {
   const childrenList = []; // stores children details
   let loaded = false; // checks whether we have loaded the children details or not.
@@ -39,11 +63,20 @@ function displayfiles() {
     },
     view: (v) => [
       m('tr', [
-        parStruct && parStruct.details.children && Object.keys(parStruct.details.children).length
-          ? m(
-              'td',
-              icon('angle-right', {
-                class: parStruct.showChild ? 'icon--rot-90' : '',
+        //  Twist, type icon and name in one cell, indented by padding: the
+        //  chevron has to step right with the name, and the old
+        //  `position: relative; left:` moved only the text.
+        m(
+          'td.file-tree__name',
+          { style: { paddingLeft: `calc(var(--s2) + ${v.attrs.replyDepth} * 1.25rem)` } },
+          //  The flex row is inside the cell, not the cell itself: `display:
+          //  flex` on a td drops it out of the table box model, and this
+          //  table is `table-layout: fixed`.
+          m('.file-tree__row', [
+            parStruct && parStruct.details.children && Object.keys(parStruct.details.children).length
+              ? icon('angle-right', {
+                class: parStruct.showChild ? 'file-tree__twist icon--rot-90' : 'file-tree__twist',
+                title: parStruct.showChild ? 'Collapse' : 'Expand',
                 onclick: async () => {
                   if (!loaded) {
                     // Retrieve the directory entries before displaying the nested rows.
@@ -63,18 +96,7 @@ function displayfiles() {
                   m.redraw();
                 },
               })
-            )
-          : m('td', ''),
-        m(
-          'td',
-          {
-            style: {
-              position: 'relative',
-              '--replyDepth': v.attrs.replyDepth,
-              left: `calc(30px*${v.attrs.replyDepth})`,
-            },
-          },
-          [
+              : m('span.file-tree__twist.is-empty'),
             icon(
               isId ? 'user-friends' : !isFile ? (parStruct.showChild ? 'folder-open' : 'folder') : 'file',
               {
@@ -89,27 +111,23 @@ function displayfiles() {
                 title: isId ? 'Friend' : isFile ? 'File' : 'Folder',
               }
             ),
-            isId
-              ? (nameOfId || parStruct.details.name) +
-                ' (' +
-                parStruct.details.name.slice(0, 8) +
-                '...)'
-              : parStruct.details.name,
-          ]
+            m('span.file-tree__label',
+              isId
+                ? `${nameOfId || parStruct.details.name} (${parStruct.details.name.slice(0, 8)}…)`
+                : parStruct.details.name),
+          ])
         ),
         m('td', rs.formatBytes(parStruct.details.size.xint64)),
         isFile &&
           m(
             'td',
-            // using the file from files_util to display download.
+            //  The whole File card does not belong in a table cell. The row
+            //  says how far along it is; the figures live in the info tooltip.
             fileDown.list[parStruct.details.hash]
-              ? m(util.File, {
-                  info: fileDown.list[parStruct.details.hash],
-                  direction: 'down',
-                  transferred: fileDown.list[parStruct.details.hash].transfered.xint64,
-                  parts: [],
-                })
-              : m('button.is-primary',
+              ? transferStatus(fileDown.list[parStruct.details.hash])
+              : haveFile
+                ? m('span.friends-files__have', [icon('check'), 'Downloaded'])
+                : m('button.is-primary',
                   {
                     style: { fontSize: '0.9em' },
                     onclick: () => widget.confirmMessage({
@@ -134,7 +152,7 @@ function displayfiles() {
                     }),
                   },
 
-                  haveFile ? 'Open File' : [m('span', 'Download'), icon('download')]
+                  [m('span', 'Download'), icon('download')]
                 )
           ),
       ]),

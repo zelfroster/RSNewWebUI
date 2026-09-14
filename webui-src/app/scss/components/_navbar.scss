@@ -75,9 +75,9 @@
     text-decoration: none;
     white-space: nowrap;
 
-    //  --sunken, like every other list row's hover in the product. It used to
-    //  be --select-soft, which is what everything else uses for *selected* --
-    //  so the rail's hover was as strong as another list's selection.
+    //  --sunken, like every other list row's hover in the product. Not
+    //  --select-soft: that is what everything else uses for *selected*, and it
+    //  would make this hover as strong as another list's selection.
     &:hover { background: var(--sunken); color: var(--ink); }
   }
 
@@ -282,6 +282,11 @@
     @include nav-rail-item-selected;
 
     animation: none;
+
+    //  `.sidebar a:hover` counts as (0,2,1) and this rule as (0,2,0), so the
+    //  generic hover from nav-rail-item repainted the row you are already on.
+    //  Selection is a state; pointing at it does not change it.
+    &:hover { @include nav-rail-item-selected; }
   }
 
   .sidebar__count { @include nav-rail-count; }

@@ -97,8 +97,7 @@ function navigationContent(item) {
   ];
 }
 
-// The collapse survives a reload. It used to be a closure variable, so the
-// choice was lost every time the page was refreshed.
+// The collapse survives a reload; a closure variable would not.
 const NAV_KEY = 'rs.webui.nav.collapsed';
 
 function readCollapsed() {
@@ -186,9 +185,8 @@ const navbar = () => {
               { onclick: () => rs.logout(), title: 'Log out' },
               [icon('sign-out-alt', { class: 'sidenav-icon', size: 19 }), m('span.nav-menu__label', 'Log out')]
             ),
-            // Pinned, and always visible. It used to appear only on
-            // .nav-menu:hover, which is unreachable on touch and
-            // undiscoverable on a pointer.
+            // Pinned, and always visible: behind .nav-menu:hover it is
+            // unreachable on touch and undiscoverable on a pointer.
             m(
               'button.nav-menu__toggle[type=button]',
               {

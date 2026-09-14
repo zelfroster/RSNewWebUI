@@ -72,8 +72,8 @@
 }
 
 //  Display scale, not toolbar scale. A modal is a place you have arrived at,
-//  and the title is the only thing telling you where -- the 16px it used to be
-//  read as a strip of chrome above the form rather than the name of the task.
+//  and the title is the only thing telling you where; at toolbar size it reads
+//  as a strip of chrome above the form rather than the name of the task.
 //
 //  Regular weight, and no letter-spacing of its own. At 30px the size alone
 //  carries the hierarchy; bolding it as well makes the head shout over the

@@ -707,9 +707,9 @@ textarea.chatMsg {
       margin-bottom: 1rem;
     }
 
-    //  Label above value, in as many columns as the pane can hold. It was a
-    //  fixed 130px label column against one value column, so seven rows of two
-    //  short words each took the full width of the screen.
+    //  Label above value, in as many columns as the pane can hold: a fixed
+    //  label column against one value column gives seven rows of two short
+    //  words each taking the full width of the screen.
     .info-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -722,7 +722,7 @@ textarea.chatMsg {
         gap: 2px;
         min-width: 0;
 
-        //  The one value with no natural width: it takes the whole row.
+        //  A topic is a sentence, not a field: it takes the whole row.
         &--wide { grid-column: 1 / -1; }
       }
 
@@ -1105,8 +1105,8 @@ textarea.chatMsg {
   overflow: hidden;
 }
 
-//  240, not 200: at the old width a name of any length hit the edge, and the
-//  column is now something you choose to have open.
+//  240: at 200 a name of any length hits the edge, and the column is something
+//  you choose to have open.
 .chat-hub-rightbar {
   width: 240px;
   border-left: 1px solid var(--line-soft);
@@ -1376,12 +1376,11 @@ textarea.chatMsg {
   }
 
   //  The product's close button, not a red badge: a square glyph on a chip
-  //  light enough to read over any image. It used to be a --down circle that
-  //  never actually rendered red -- `btn-base` sets `background: var(--chrome)`,
-  //  a GRADIENT, and this rule set only `background-color`, so the gradient
-  //  survived in background-image and painted over the colour. It was also
-  //  24x30, because btn-base's `min-height: var(--control)` was never cleared,
-  //  which made `--r-full` an ellipse rather than a circle.
+  //  light enough to read over any image. Two traps if it is ever coloured
+  //  instead -- `btn-base` sets `background: var(--chrome)`, a GRADIENT, so a
+  //  rule setting only `background-color` leaves it painted over; and its
+  //  `min-height: var(--control)` has to be cleared, or `--r-full` draws an
+  //  ellipse rather than a circle.
   &__remove {
     @include btn-close;
 
@@ -1906,92 +1905,6 @@ label.mobile-chat-attachment__option:hover {
   margin: 0 !important;
 }
 
-/* User Tooltip Styling (Standalone Fixed Floating Tooltip) */
-.user-tooltip {
-  position: fixed !important;
-  width: 280px !important;
-  background-color: var(--warn-bg) !important;
-  border: 1px solid var(--ink-dim) !important;
-  box-shadow: none !important;
-  padding: 0.5rem !important;
-  border-radius: var(--r-sm) !important;
-  z-index: 10000 !important;
-  white-space: normal !important;
-  display: flex !important;
-  gap: 0.5rem !important;
-  align-items: flex-start !important;
-  color: var(--ink) !important;
-  font-size: var(--t-meta) !important;
-  text-align: left !important;
-  pointer-events: none !important;
-}
-
-.user-tooltip .tooltip-avatar {
-  flex-shrink: 0 !important;
-}
-
-.user-tooltip .tooltip-avatar .jdenticon-avatar,
-.user-tooltip .tooltip-avatar .defaultAvatar,
-.user-tooltip .tooltip-avatar img.avatar {
-  width: 56px !important;
-  height: 56px !important;
-  min-width: 56px !important;
-  min-height: 56px !important;
-  border-radius: var(--r-sm) !important;
-  border: 1px solid var(--ink-dim) !important;
-  box-shadow: none !important;
-  object-fit: cover !important;
-}
-
-.user-tooltip .tooltip-details {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 0.2rem !important;
-  min-width: 0 !important;
-  flex: 1 !important;
-}
-
-.user-tooltip .tooltip-details .tooltip-row {
-  line-height: 1.2 !important;
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: baseline !important;
-  gap: 0.35rem !important;
-  white-space: normal !important;
-  word-break: break-all !important;
-}
-
-.user-tooltip .tooltip-details .tooltip-row .tooltip-label {
-  font-weight: var(--w-label) !important;
-  color: var(--ink) !important;
-  font-size: var(--t-meta) !important;
-  flex-shrink: 0 !important;
-}
-
-.user-tooltip .tooltip-details .tooltip-row .tooltip-value {
-  font-weight: var(--w-body) !important;
-  color: var(--ink) !important;
-  font-size: var(--t-meta) !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-
-.user-tooltip .tooltip-details .tooltip-row .tooltip-value.is-positive {
-  color: var(--up-ink) !important;
-  font-weight: var(--w-state) !important;
-}
-
-.user-tooltip .tooltip-details .tooltip-row .tooltip-value.is-negative {
-  color: var(--down-ink) !important;
-  font-weight: var(--w-state) !important;
-}
-
-.user-tooltip .tooltip-details .tooltip-row .tooltip-value.tooltip-id {
-  font-family: monospace !important;
-  font-size: var(--t-label) !important;
-  color: var(--brand-deep) !important;
-}
-
 /* Emoji Picker Dropdown & Grid Styling */
 .emoji-picker-wrapper {
   position: relative;
@@ -2000,9 +1913,9 @@ label.mobile-chat-attachment__option:hover {
   align-items: center;
 }
 
-//  Fixed size. The box used to be as tall as its contents, so it grew and
-//  shrank as you typed -- one match made it a sliver, and hiding the category
-//  row during a search moved everything else up as well.
+//  Fixed size, not sized to its contents: that grows and shrinks as you type,
+//  one match makes it a sliver, and hiding the category row during a search
+//  moves everything else up as well.
 .emoji-picker {
   position: absolute;
   bottom: calc(100% + 0.5rem);
@@ -2171,10 +2084,8 @@ label.mobile-chat-attachment__option:hover {
       color: var(--brand) !important;
     }
 
-    //  The glyphs used to be blue, emerald, violet and sky -- four colours in
-    //  a list of four equal choices. They take the row's ink now, and the
-    //  three opinion marks below keep theirs, because there the colour is the
-    //  vote being cast.
+    //  Four equal choices, so the glyphs take the row's ink. The three opinion
+    //  marks below keep theirs, because there the colour is the vote being cast.
     > .icon {
       flex: none !important;
       width: 17px !important;
@@ -2264,9 +2175,8 @@ label.mobile-chat-attachment__option:hover {
   justify-content: center;
   box-sizing: border-box;
   padding: 3.5rem var(--s4) var(--s4);
-  //  Dark and clearly transparent, in the product's own ink rather than the
-  //  Tailwind slate this used to carry at 98% -- which was opaque enough that
-  //  the app behind it read as gone rather than as behind.
+  //  Dark and clearly transparent, in the product's own ink. Much past this
+  //  and the app behind reads as gone rather than as behind.
   background: rgb(var(--ink-rgb) / 0.72);
 
   &__image {

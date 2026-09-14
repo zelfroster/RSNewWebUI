@@ -1,81 +1,199 @@
 @use 'sass:color';
 @use '../abstracts/' as *;
 
+//  One transfer. Name and its one control on a row, the bar under it, then
+//  the figures -- rather than a stack of full-width blocks with a 32px bar in
+//  the middle of it.
 .file-view {
   width: 100%;
-  padding: 1rem;
-  margin-top: 1.5rem;
+  padding: var(--s3);
+  margin-top: var(--s3);
   border-radius: var(--r-md);
   border: 1px solid var(--line);
   animation: fadein 0.5s;
+
   &__heading {
-    @include flex($justify: space-between);
-    margin-bottom: 0.5rem;
+    @include flex($justify: space-between, $align: center, $gap: var(--s3));
+    margin-bottom: var(--s3);
+
+    h6 {
+      margin: 0;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: var(--t-row);
+      font-weight: var(--w-label);
+      color: var(--ink);
+    }
+
     &-chunk {
-      @include flex($gap: 1rem);
+      @include flex($align: center, $gap: var(--s2));
+      flex: none;
+
+      label {
+        color: var(--ink-dim);
+        font-size: var(--t-meta);
+        white-space: nowrap;
+      }
     }
   }
+
   &__body {
-    @include flex(column, $gap: 1rem);
+    @include flex(column, $gap: var(--s3));
+
     &-details {
-      @include flex($align: center);
+      @include flex($align: center, $gap: var(--s3));
+
       &-stat {
         width: 100%;
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        & span > i {
-          margin-right: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--s2) var(--s4);
+        color: var(--ink-dim);
+        font-size: var(--t-meta);
+        font-variant-numeric: tabular-nums;
+
+        //  This said `span > i`, which has matched nothing since the icons
+        //  became `<svg class="icon">` -- the glyphs sat flush against their
+        //  numbers.
+        span {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--s1);
+          white-space: nowrap;
+        }
+
+        .icon {
+          width: 14px;
+          height: 14px;
+          color: var(--ink-faint);
         }
       }
+
       &-action {
-        @include flex($gap: 1rem);
-        height: 100%;
-        & button,
-        & button.red {
-          padding: 0.25rem 0.75rem;
-        }
+        @include flex($gap: var(--s2));
+        flex: none;
       }
     }
   }
 }
 
-table.myfiles td {
-  word-wrap: break-word;
-}
-table.myfiles th:nth-child(1) {
-  width: 2%;
-}
-table.myfiles th:nth-child(2) {
-  width: 50%;
-}
-table.myfiles td:nth-child(2) {
-  text-align: start;
-}
-table.friendsfiles td {
-  word-wrap: break-word;
-}
-table.friendsfiles th:nth-child(1) {
-  width: 1.5rem;
-  padding-left: 0.25rem;
-  padding-right: 0;
-}
-table.friendsfiles th:nth-child(2) {
-  width: 50%;
+//  My Files and Friends' Files are the same object: a directory tree with a
+//  size beside it. They read the way the mail table does -- quiet uppercase
+//  headers, a hairline under each row, the number right-aligned -- rather
+//  than inheriting the base `table` rule, whose centred 18px black headings
+//  are what made these two pages look unfinished.
+table.myfiles,
+table.friendsfiles {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: var(--t-row);
   text-align: left;
-  padding-left: 0.25rem;
+
+  th {
+    padding: var(--s2);
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-dim);
+    font-size: var(--t-label);
+    font-weight: var(--w-label);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: var(--s2);
+    border-bottom: 1px solid var(--line-soft);
+    color: var(--ink);
+    vertical-align: middle;
+    word-wrap: break-word;
+  }
+
+  tr:hover td { background: var(--ground); }
+
+  //  A size is a number in a column of numbers.
+  th:nth-child(2),
+  td:nth-child(2) {
+    width: 140px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-dim);
+    white-space: nowrap;
+  }
+
+  //  Name, twist and type icon on one baseline. The indent is padding on the
+  //  cell, so the chevron steps right with the row rather than staying put in
+  //  a column of its own; the flex row sits inside the cell so the cell keeps
+  //  its table-cell display and this fixed layout still allocates widths.
+  td.file-tree__name { min-width: 0; }
+
+  .file-tree__row {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    min-width: 0;
+  }
+
+  .file-tree__twist {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    color: var(--ink-faint);
+    cursor: pointer;
+    transition: color 0.15s ease;
+
+    &:hover { color: var(--ink); }
+
+    //  A leaf keeps the space so every name in a level starts at one edge.
+    &.is-empty { cursor: default; }
+  }
+
+  .file-tree__label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .files-folder-icon,
+  .files-file-icon,
+  .friends-files__folder-icon,
+  .friends-files__file-icon {
+    flex: none;
+  }
 }
-table.friendsfiles th:nth-child(4) {
-  width: 40%;
+
+//  Friends' Files carries a third column for the download control.
+table.friendsfiles {
+  th:nth-child(3),
+  td:nth-child(3) {
+    width: 150px;
+    text-align: center;
+  }
 }
-table.friendsfiles td:nth-child(2) {
-  text-align: start;
-  padding-left: 0.25rem;
+
+//  The state of a friend's file, in the width of a table cell. A transfer in
+//  progress is a percentage plus an info icon; the figures the File card
+//  would have shown are that icon's tooltip.
+.friends-files__have,
+.friends-files__progress {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  color: var(--ink-dim);
+  font-size: var(--t-meta);
+  white-space: nowrap;
+
+  .icon { width: 14px; height: 14px; }
 }
-table.friendsfiles td:nth-child(1) {
-  width: 1.5rem;
-  padding-left: 0.25rem;
-  padding-right: 0;
-}
+
+.friends-files__have .icon { color: var(--up-ink); }
+
+.friends-files__progress-pct { font-variant-numeric: tabular-nums; }
+.friends-files__progress-info { color: var(--ink-faint); cursor: help; }
 
 // File Search
 .file-search-container {
@@ -172,8 +290,13 @@ table.friendsfiles td:nth-child(1) {
   }
 }
 
-.search-form {
-  width: 40%;
+//  The submitting variant: the page header sizes it, the same way it sizes
+//  the filtering one. `width: 40%` of a `flex: 0 1 auto` actions box resolved
+//  against a shrink-to-fit parent and collapsed the field to a white square.
+.page-head__actions > .search-submit {
+  flex: none;
+  width: 320px;
+  max-width: 100%;
 }
 
 /* File search results use div rows, not table rows.  Give those rows their
@@ -421,13 +544,6 @@ table.friendsfiles td:nth-child(1) {
       td:nth-child(1),
       td:nth-child(2) {
         padding-left: 0.5rem;
-      }
-      td:nth-child(3),
-      td:nth-child(4) {
-        & .tooltip {
-          font-weight: var(--w-body);
-          font-size: var(--t-h3);
-        }
       }
     }
     tbody {
@@ -723,57 +839,20 @@ table.friendsfiles td:nth-child(1) {
     background: white;
   }
 
-  /* Friends Files is a hierarchy, so keep its controls and details together
-     as a compact list row instead of stacking every table cell as a card. */
-  table.friendsfiles tr {
-    display: grid;
-    grid-template-columns: 1.25rem minmax(0, 1fr) auto;
-    align-items: center;
-    column-gap: 0.35rem;
-    margin-bottom: 0.5rem;
-    padding: 0.65rem 0.5rem;
-  }
-
-  table.friendsfiles td {
-    display: block;
-    width: auto !important;
-    margin: 0;
-    padding: 0 !important;
-    border: 0 !important;
-  }
-
-  table.friendsfiles td:nth-child(1) {
-    grid-column: 1;
-  }
-
-  table.friendsfiles td:nth-child(2) {
-    grid-column: 2;
-    left: 0 !important;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  table.friendsfiles td:nth-child(3) {
-    grid-column: 3;
-    white-space: nowrap;
-  }
-
-  table.friendsfiles td:nth-child(4) {
-    grid-column: 2 / -1;
-    margin-top: 0.4rem;
-  }
-
+  /* Both trees are a hierarchy, so keep each entry as one compact list row
+     instead of stacking every cell as a card. Two cells now, not three: the
+     chevron rides inside the name. */
+  table.friendsfiles tr,
   table.myfiles tr {
     display: grid;
-    grid-template-columns: 1.25rem minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    column-gap: 0.35rem;
+    column-gap: 0.5rem;
     margin-bottom: 0.5rem;
     padding: 0.65rem 0.5rem;
   }
 
+  table.friendsfiles td,
   table.myfiles td {
     display: block;
     width: auto !important;
@@ -782,22 +861,22 @@ table.friendsfiles td:nth-child(1) {
     border: 0 !important;
   }
 
-  table.myfiles td:nth-child(1) {
+  table.friendsfiles td.file-tree__name,
+  table.myfiles td.file-tree__name {
     grid-column: 1;
+    min-width: 0;
   }
 
+  table.friendsfiles td:nth-child(2),
   table.myfiles td:nth-child(2) {
     grid-column: 2;
-    left: 0 !important;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  table.myfiles td:nth-child(3) {
-    grid-column: 3;
-    white-space: nowrap;
+  /* The download control gets its own line under the entry. */
+  table.friendsfiles td:nth-child(3) {
+    grid-column: 1 / -1;
+    margin-top: 0.4rem !important;
   }
 
   .my-files__configure-shares {
@@ -848,10 +927,9 @@ table.friendsfiles td:nth-child(1) {
     word-break: break-all;
   }
 
-  .search-form {
+  .page-head__actions > .search-submit {
+    flex: 1 1 100%;
     width: auto;
-    flex: 1;
-    max-width: 18rem;
   }
 
   .file-search-container {

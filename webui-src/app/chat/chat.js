@@ -183,16 +183,16 @@ function renderUserTooltip(gxsId, name) {
       zIndex: 10000,
     }
   }, [
-    m('.tooltip-avatar', m(peopleUtil.UserAvatar, { avatar, firstLetter, identityId: gxsId, size: 56, isSquare: true })),
+    m('.tooltip-avatar', m(peopleUtil.UserAvatar, { avatar, firstLetter, identityId: gxsId, size: 48, isSquare: true })),
     m('.tooltip-details', [
-      m('.tooltip-row', [m('span.tooltip-label', 'Identity name: '), m('span.tooltip-value', name)]),
-      m('.tooltip-row', [m('span.tooltip-label', 'Identity Id: '), m('span.tooltip-value.tooltip-id', gxsId)]),
+      m('.tooltip-row', [m('span.tooltip-label', 'Identity name:'), m('span.tooltip-value', name)]),
+      m('.tooltip-row', [m('span.tooltip-label', 'Identity Id:'), m('span.tooltip-value.tooltip-id', gxsId)]),
       details.mPgpId && details.mPgpId !== '0000000000000000' && m('.tooltip-row', [
-        m('span.tooltip-label', 'Node: '),
+        m('span.tooltip-label', 'Node:'),
         m('span.tooltip-value', `${rs.userList.username(details.mPgpId) || name} [${details.mPgpId}]`)
       ]),
       m('.tooltip-row', [
-        m('span.tooltip-label', 'Votes: '),
+        m('span.tooltip-label', 'Votes:'),
         m('span.tooltip-value', {
           class: votes >= 0 ? 'is-positive' : 'is-negative',
         }, (votes >= 0 ? '+' : '') + votes)
@@ -1021,13 +1021,15 @@ const ChatRoomDetailView = () => {
               m('.info-label', 'You are'),
               m('.info-value', rs.userList.username(room.gxs_id) || room.gxs_id || '???'),
             ]),
+            //  The id is a fixed-length number and fits a column; a topic is a
+            //  sentence someone wrote, so it gets the wide row.
             m('.info-cell', [
-              m('.info-label', 'Topic'),
-              m('.info-value', room.lobby_topic || 'None'),
-            ]),
-            m('.info-cell.info-cell--wide', [
               m('.info-label', 'Lobby ID'),
               m('.info-value.info-value--id', lobbyHexId),
+            ]),
+            m('.info-cell.info-cell--wide', [
+              m('.info-label', 'Topic'),
+              m('.info-value', room.lobby_topic || 'None'),
             ]),
           ]),
         ]),

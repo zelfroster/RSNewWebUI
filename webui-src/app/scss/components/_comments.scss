@@ -204,8 +204,7 @@
   margin-right: auto;
 }
 
-//  The emoji switch. It was a block of inline styles describing a bare
-//  button; btn-glyph is the product's word for that.
+//  The emoji switch: a bare button, which btn-glyph is the product's word for.
 .comment-emoji-toggle {
   @include btn-base;
   @include btn-glyph;

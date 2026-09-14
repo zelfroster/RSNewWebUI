@@ -87,9 +87,8 @@
         }
       }
 
-      //  The product's own button. It used to paint itself: whitesmoke on a
-      //  half-ink border, which is darker than any border in the product and
-      //  looked nothing like the Add Friend button above it.
+      //  The product's own button, so it matches the Add Friend button above
+      //  it rather than painting itself.
       .webhelp {
         @include btn-base;
 
@@ -99,8 +98,8 @@
         }
 
         //  The one coloured glyph on the page, and the only thing here that
-        //  leaves the app. `& > i` never matched -- the sprite renders an
-        //  <svg class="icon"> -- so this had been grey since the icon change.
+        //  leaves the app. The sprite renders an `<svg class="icon">`, so an
+        //  `i` selector matches nothing here.
         > .icon { color: var(--up-ink); }
       }
 

@@ -249,8 +249,7 @@ function contactlist(list) {
 function sortUsers(list) {
   if (list === undefined) return list;
   //  Copied, not sorted in place: this is rs.userList.users, shared with every
-  //  other page. The isSearched marking that used to happen here belonged to a
-  //  search box that no longer exists.
+  //  other page.
   return [...list].sort((a, b) => a.mGroupName.localeCompare(b.mGroupName));
 }
 

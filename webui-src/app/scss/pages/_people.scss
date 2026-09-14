@@ -199,9 +199,9 @@ img.avatar {
   align-items: center;
   gap: var(--s2);
 
-  //  Every row here is an equal choice, so the glyphs take the row's own ink.
-  //  They used to be blue, emerald and red, which read as three different
-  //  kinds of thing in a list of three of the same kind.
+  //  Every row here is an equal choice, so the glyphs take the row's own ink:
+  //  a colour each reads as three different kinds of thing in a list of three
+  //  of the same kind.
   > .icon { color: var(--ink-dim); }
 }
 
@@ -210,9 +210,8 @@ img.avatar {
   color: var(--ink);
 }
 
-/* The passphrase step of the signed-identity form. It used to push itself
-   down the sheet with margin-top: 50px and 160px -- two magic offsets that
-   only lined up at one window height. */
+/* The passphrase step of the signed-identity form. Spacing from the scale,
+   not from magic offsets that only line up at one window height. */
 .passphrase-field { width: 80%; margin-top: var(--s5); }
 .passphrase-submit { margin-top: var(--s4); }
 

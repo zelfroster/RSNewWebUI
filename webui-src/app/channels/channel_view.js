@@ -46,8 +46,7 @@ function channelPostCommentCount(postId, post) {
 }
 
 //  Shown in place of a post's image when it has none. `hidden` is the platform
-//  attribute, which the base sheet already hides -- it was a display: none
-//  written inline.
+//  attribute, which the base sheet already hides.
 const ChannelFallbackThumbnail = () => ({
   view: (vnode) => m('.channel-post__placeholder', { hidden: vnode.attrs.hidden }, [
     icon('image'),

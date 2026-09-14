@@ -115,18 +115,28 @@ const Sidebar = () => {
 
   //  `icons` and `labels` are optional maps keyed by tab name. Callers that
   //  pass neither keep the plain capitalised text link.
+  //
+  //  Two ways to drive it. Most sections are routed: pass `baseRoute` and the
+  //  rail reads the current route. Statistics switches panes in local state,
+  //  so it passes `active` and `onSelect` instead -- the rail is the same
+  //  object either way, which is the point.
   const links = (v) => v.attrs.tabs.map((panelName) => {
-    const href = v.attrs.baseRoute + panelName;
-    const selected = m.route.get().toLowerCase().startsWith(href.toLowerCase());
+    const href = v.attrs.baseRoute ? v.attrs.baseRoute + panelName : undefined;
+    const selected = v.attrs.onSelect
+      ? v.attrs.active === panelName
+      : m.route.get().toLowerCase().startsWith(href.toLowerCase());
     const glyph = v.attrs.icons && v.attrs.icons[panelName];
     const label = (v.attrs.labels && v.attrs.labels[panelName]) || panelName;
     return m('a', {
       class: selected ? 'selected-sidebar-link' : '',
       href,
+      'aria-current': selected ? 'page' : undefined,
+      title: v.attrs.titles && v.attrs.titles[panelName],
       onclick: (event) => {
         event.preventDefault();
         mobileOpen = false;
-        m.route.set(href);
+        if (v.attrs.onSelect) v.attrs.onSelect(panelName);
+        else m.route.set(href);
       },
     }, glyph ? [icon(glyph, { class: 'sidebar__icon' }), m('span', label)] : label);
   });

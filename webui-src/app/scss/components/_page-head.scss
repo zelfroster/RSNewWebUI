@@ -69,6 +69,15 @@
     gap: var(--s2);
     flex: 0 1 auto;
     min-width: 0;
+
+    //  A filter field in a header is a fixed-width control, not something
+    //  that grows to whatever the row leaves. Sized once, here, so Boards,
+    //  Channels and Forums cannot drift apart again.
+    > .search-field {
+      flex: none;
+      width: 240px;
+      max-width: 100%;
+    }
   }
 }
 
@@ -78,6 +87,10 @@
     align-items: stretch;
     gap: var(--s3);
 
-    &__actions { flex-wrap: wrap; }
+    &__actions {
+      flex-wrap: wrap;
+
+      > .search-field { flex: 1 1 100%; width: auto; }
+    }
   }
 }
