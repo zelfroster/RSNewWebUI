@@ -41,7 +41,7 @@
       padding-bottom: 1rem;
 
       .detail-title h2 {
-        font-size: 1.35rem;
+        font-size: var(--t-h2);
       }
 
       .detail-actions {
@@ -77,7 +77,7 @@
     grid-template-columns: 1fr;
     gap: 0.35rem;
     padding-bottom: 0.75rem;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--line-soft);
   }
 
   /* Generic two column form grid used across the config pages */
@@ -118,7 +118,7 @@
      every column below readability. Let the content drive the width instead. */
   table {
     table-layout: auto;
-    font-size: 1rem;
+    font-size: var(--t-h3);
   }
 
   table td,
@@ -165,8 +165,8 @@
       & > td:nth-child(n + 3) {
         display: inline-block;
         margin-right: 0.75rem;
-        font-size: 0.8rem;
-        color: #64748b;
+        font-size: var(--t-meta);
+        color: var(--ink-dim);
       }
 
       & > td:nth-child(5)::before {
@@ -226,12 +226,11 @@
   input[type='email'],
   select,
   textarea {
-    font-size: 16px;
+    font-size: var(--t-h3);
   }
 
   input {
-    &.stretched,
-    &.searchbar {
+    &.stretched {
       width: 100%;
     }
 

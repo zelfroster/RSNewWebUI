@@ -4,6 +4,7 @@ const rs = require('rswebui');
 const util = require('channels/channels_util');
 const viewUtil = require('channels/channel_view');
 const peopleUtil = require('people/people_util');
+const icon = require('icon');
 
 const getChannels = {
   All: [],
@@ -19,9 +20,7 @@ const getChannels = {
         console.warn('Channels summaries response did not include channels', res && res.body);
         return;
       }
-      //  Sorted like the old Popular ∪ Other merge the All tab used to
-      //  render: most popular first, not the server's group-id order.
-      getChannels.All = [...channels].sort((a, b) => (b.mPop || 0) - (a.mPop || 0));
+      getChannels.All = channels;
       getChannels.Subscribed = channels.filter(
       (channel) =>
         channel.mSubscribeFlags === util.GROUP_SUBSCRIBE_SUBSCRIBED ||
@@ -46,18 +45,43 @@ const getChannels = {
 const CHANNEL_LIST_REFRESH_MS = 30000;
 
 const sections = {
-  All: require('channels/popular_channels'),
   MyChannels: require('channels/my_channels'),
   Subscribed: require('channels/subscribed_channels'),
   Popular: require('channels/popular_channels'),
   Other: require('channels/other_channels'),
 };
 
+const navLabels = {
+  MyChannels: 'My Channels',
+  Subscribed: 'Subscribed',
+  Popular: 'Popular',
+  Other: 'All Channels',
+};
+
+//  The page title, which can say more than the rail label beside it.
+const pageTitles = {
+  MyChannels: 'My Channels',
+  Subscribed: 'Subscribed Channels',
+  Popular: 'Popular Channels',
+  Other: 'All Channels',
+};
+
+const navIcons = {
+  MyChannels: 'tv',
+  Subscribed: 'bookmark',
+  Popular: 'fire',
+  Other: 'globe',
+};
+
 const Layout = () => {
   let ownId;
   const createChannel = () => ownId && widget.popupMessage(
     m(viewUtil.createchannel, { authorId: ownId, onCreated: getChannels.load }),
-    'create-channel-modal'
+    'create-channel-modal',
+    {
+      title: 'Create Channel',
+      lead: 'Set up the channel appearance and publishing options.',
+    }
   );
 
   return {
@@ -85,25 +109,17 @@ const Layout = () => {
       m('.widget', {
         class: vnode.attrs.pathInfo.mGroupId && !vnode.attrs.pathInfo.mMsgId ? 'channels-detail-widget' : '',
       }, [
-        m('.top-heading', [
-          m(
-            'button.channels-create-button',
-            {
+        //  Only the list views get a page header: a channel and a post carry
+        //  their own heading, which is the channel's name rather than the tab's.
+        !vnode.attrs.pathInfo.mGroupId && m(widget.PageHead, {
+          title: pageTitles[vnode.attrs.pathInfo.tab] || 'Channels',
+          actions: [
+            m('button.channels-create-button.is-primary', {
               onclick: createChannel,
-            },
-            'Create Channel'
-          ),
-          Object.prototype.hasOwnProperty.call(vnode.attrs.pathInfo, 'mMsgId')
-            ? ''
-            : Object.prototype.hasOwnProperty.call(vnode.attrs.pathInfo, 'mGroupId')
-            ? m(util.SearchBar, {
-                category: 'posts',
-                channelId: vnode.attrs.pathInfo.mGroupId,
-              })
-            : m(util.SearchBar, {
-                category: 'channels',
-              }),
-        ]),
+            }, [icon('plus'), 'Create Channel']),
+            m(util.SearchBar, { category: 'channels' }),
+          ],
+        }),
         Object.prototype.hasOwnProperty.call(vnode.attrs.pathInfo, 'mMsgId') // posts
           ? m(viewUtil.PostView, {
               msgId: vnode.attrs.pathInfo.mMsgId,
@@ -116,14 +132,7 @@ const Layout = () => {
             })
           : m(sections[vnode.attrs.pathInfo.tab], {
               // subscribed, all, popular, other
-              //  Not Popular ∪ Other: for channels those two sets EXCLUDE the
-              //  subscribed ones, so "All Channels" lost a channel the moment
-              //  the user subscribed to it. The full list already exists.
-              list: vnode.attrs.pathInfo.tab === 'All'
-                ? getChannels.All
-                : getChannels[vnode.attrs.pathInfo.tab],
-              title: vnode.attrs.pathInfo.tab === 'All' ? 'All Channels' : undefined,
-              category: vnode.attrs.pathInfo.tab,
+              list: getChannels[vnode.attrs.pathInfo.tab],
               onCreateChannel: createChannel,
             }),
       ]),
@@ -131,12 +140,17 @@ const Layout = () => {
 };
 
 module.exports = {
-  view: (vnode) => m(require('library_layout'), {
-    title: 'Channels',
-    icon: 'tv',
-    tabs: Object.keys(sections).filter((tab) => tab !== 'All'),
-    mobileTabs: [{ tab: 'MyChannels', label: 'My' }, 'Subscribed', 'All'],
-    baseRoute: '/channels/',
-    detailOpen: Boolean(vnode.attrs.mGroupId),
-  }, m(Layout, { pathInfo: vnode.attrs })),
+  view: (vnode) => {
+    return [
+      m(widget.Sidebar, {
+        tabs: Object.keys(sections),
+        baseRoute: '/channels/',
+        mobileDrawer: true,
+        title: 'Channels',
+        labels: navLabels,
+        icons: navIcons,
+      }),
+      m('.node-panel', m(Layout, { pathInfo: vnode.attrs })),
+    ];
+  },
 };

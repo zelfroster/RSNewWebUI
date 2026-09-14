@@ -5,6 +5,8 @@ const widget = require('widgets');
 const peopleUtil = require('people/people_util');
 const compose = require('mail/mail_compose');
 const renderIdentityTooltip = require('mail/mail_identity_tooltip');
+const icon = require('icon');
+const toast = require('toast');
 
 // rsmail.h
 const RS_MSG_BOXMASK = 0x000f;
@@ -116,20 +118,30 @@ function loadTagTypes() {
 }
 loadTagTypes();
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+//  The compact form, for the card list where the date sits beside a name.
 function formatMailDate(ts) {
   if (!ts) return '';
   const date = new Date(ts * 1000);
   const now = new Date();
-  const isToday = date.toDateString() === now.toDateString();
-  if (isToday) {
+  if (date.toDateString() === now.toDateString()) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
-  const isThisYear = date.getFullYear() === now.getFullYear();
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  if (isThisYear) {
-    return `${date.getDate()} ${months[date.getMonth()]}`;
+  if (date.getFullYear() === now.getFullYear()) {
+    return `${date.getDate()} ${MONTHS[date.getMonth()]}`;
   }
   return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear().toString().slice(2)}`;
+}
+
+//  The table has a column to itself, so it carries the time as well -- which
+//  is the only thing that separates two mails that arrived the same day.
+function formatMailDateTime(ts) {
+  if (!ts) return '';
+  const date = new Date(ts * 1000);
+  const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (date.toDateString() === new Date().toDateString()) return time;
+  return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear().toString().slice(2)}, ${time}`;
 }
 
 // Utility functions
@@ -285,26 +297,20 @@ const MessageSummary = () => {
                 onclick: starMessage,
                 class: (details.msgflags & 0xf00) === RS_MSG_STAR ? 'starred' : 'unstarred',
               },
-              m('i.fas.fa-star')
+              icon((details.msgflags & 0xf00) === RS_MSG_STAR ? 'star-fill' : 'star')
             )
           ),
-          m('td.cell-attachment', files && files.length > 0 ? m('i.fas.fa-paperclip', { title: `${files.length} attachment(s)` }) : null),
+          m('td.cell-attachment', files && files.length > 0 ? icon('paperclip', { title: `${files.length} attachment(s)` }) : null),
           m('td.cell-subject', [
-            m('div', {
-              style: {
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-              }
-            }, [
-              files && files.length > 0 && m('i.fas.fa-paperclip.mobile-subject-clip', { title: `${files.length} attachment(s)` }),
+            m('.cell-subject__row', [
+              files && files.length > 0 && icon('paperclip', { class: 'mobile-subject-clip',  title: `${files.length} attachment(s)` }),
               m('span', details.title),
-              details.msgtags && details.msgtags.length > 0 && m('.mail-tags-container', { style: 'display: inline-flex; gap: 0.25rem;' },
+              details.msgtags && details.msgtags.length > 0 && m('.mail-tags-container',
                 details.msgtags.map((tagId) => {
                   const tag = getTagDetails(tagId);
                   return m('span.mail-tag-badge', {
                     title: tag.name,
-                    style: `display: inline-block; width: 10px; height: 10px; border-radius: 2px; background-color: ${tag.color};`
+                    style: { backgroundColor: tag.color },
                   });
                 })
               )
@@ -313,15 +319,8 @@ const MessageSummary = () => {
           m(
             'td.cell-from',
             m(
-              'div',
+              '.cell-from__row',
               {
-                style: {
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  justifyContent: 'start',
-                  cursor: 'pointer',
-                },
                 onmouseenter: (e) => {
                   if (!details?.from?._addr_string) return;
                   const gxsId = details.from._addr_string;
@@ -347,7 +346,7 @@ const MessageSummary = () => {
               [
                 m(peopleUtil.UserAvatar, {
                   avatar: fromUserInfo?.mAvatar,
-                  firstLetter: (fromUserInfo?.mNickname || '').slice(0, 1).toUpperCase(),
+                  firstLetter: fromUserInfo?.mNickname,
                   identityId: details.from?._addr_string,
                   size: 24,
                 }),
@@ -364,10 +363,10 @@ const MessageSummary = () => {
                 class: spamActive ? 'spammed' : '',
                 title: spamActive ? 'Mark as not spam' : 'Mark as spam',
               },
-              m('i.fas.fa-fire')
+              icon(spamActive ? 'fire-fill' : 'fire')
             )
           ),
-          m('td.cell-date', { title: new Date(details.ts * 1000).toLocaleString() }, formatMailDate(details.ts)),
+          m('td.cell-date', { title: new Date(details.ts * 1000).toLocaleString() }, formatMailDateTime(details.ts)),
           m('td.cell-spacer'),
         ]
       );
@@ -459,7 +458,7 @@ const MessageCard = () => {
           m('.mail-card-avatar-col', [
             m(peopleUtil.UserAvatar, {
               avatar: senderInfo?.mAvatar,
-              firstLetter: senderName.slice(0, 1).toUpperCase(),
+              firstLetter: senderName,
               identityId: senderAddr,
               size: 38,
             }),
@@ -488,7 +487,7 @@ const MessageCard = () => {
             m('.mail-card-row-subject', [
               m('.mail-card-subject', { title: details.title || msg.title }, details.title || msg.title || '(No Subject)'),
               m('.mail-card-indicators', [
-                filesCount > 0 && m('i.fas.fa-paperclip.mail-card-clip', { title: `${filesCount} attachment(s)` }),
+                filesCount > 0 && icon('paperclip', { class: 'mail-card-clip',  title: `${filesCount} attachment(s)` }),
                 m(
                   'span.mail-card-spam-btn[role=button]',
                   {
@@ -515,7 +514,7 @@ const MessageCard = () => {
                       m.redraw();
                     },
                   },
-                  m('i.fas.fa-fire')
+                  icon(isSpam ? 'fire-fill' : 'fire')
                 ),
                 m(
                   'span.mail-card-star-btn[role=button]',
@@ -543,7 +542,7 @@ const MessageCard = () => {
                       m.redraw();
                     },
                   },
-                  m('i.fas.fa-star')
+                  icon(isStarred ? 'star-fill' : 'star')
                 ),
               ]),
             ]),
@@ -557,9 +556,9 @@ const MessageCard = () => {
                     'span.mail-card-tag-badge',
                     {
                       title: tag.name,
-                      style: `background-color: ${tag.color}20; color: ${tag.color}; border: 1px solid ${tag.color}40;`,
+                      style: { '--tag': tag.color },
                     },
-                    [m('span.mail-card-tag-dot', { style: `background-color: ${tag.color};` }), tag.name]
+                    [m('span.mail-card-tag-dot'), tag.name]
                   );
                 })
               ),
@@ -579,10 +578,7 @@ const AttachmentSection = () => {
       '/rsFiles/FileRequest',
       { fileName, hash, flags, size: { xstr64 } },
       (status) =>
-        widget.popupMessage([
-          m('i.fas.fa-file-medical'),
-          m('h3', `File is ${status.retval ? 'being' : 'already'} downloaded!`),
-        ])
+        toast.info(`File is ${status.retval ? 'being' : 'already'} downloaded!`)
     ).catch((error) => { });
   }
   return {
@@ -591,15 +587,14 @@ const AttachmentSection = () => {
         v.attrs.files.map((file) => {
           const fileSizeNum = file.size ? (typeof file.size === 'object' ? file.size.xint64 || parseInt(file.size.xstr64) || 0 : Number(file.size) || 0) : 0;
           return m('.attachment-card', [
-            m('.attachment-icon', m('i.fas.fa-paperclip')),
+            m('.attachment-icon', icon('paperclip')),
             m('.attachment-info', [
               m('.attachment-name', file.fname),
               m('.attachment-size', humanReadableSize(fileSizeNum)),
             ]),
-            m(
-              'button.btn-attachment-download',
+            m('button.btn-attachment-download.is-primary',
               { onclick: () => handleAttachmentDownload(file) },
-              [m('i.fas.fa-download'), m('span.btn-text', ' Download')]
+              [icon('download'), m('span.btn-text', ' Download')]
             ),
           ]);
         }),
@@ -610,11 +605,26 @@ const AttachmentSection = () => {
 const ReadingPanePlaceholder = {
   view: () =>
     m('.mail-reading-placeholder', [
-      m('.mail-reading-placeholder__icon', m('i.fas.fa-envelope-open-text')),
+      m('.mail-reading-placeholder__icon', icon('envelope-open-text')),
       m('h3.mail-reading-placeholder__title', 'Select an email to read'),
       m('p.mail-reading-placeholder__subtitle', 'Choose a message from the list to display its full content here.'),
     ]),
 };
+
+//  One recipient line. A broadcast can carry hundreds of addresses, and the
+//  list used to push the message itself off the screen -- the chips scroll in
+//  a box of their own now, with the label fixed beside them.
+function recipientRow(label, keys) {
+  if (!keys || keys.length === 0) return null;
+  return m('.msg-recipients-row', [
+    m('span.recipient-label', label),
+    m('.msg-recipients-row__list', keys.map((addr) => {
+      const name = UserNicknamesCache[addr] || rs.userList.username(addr) || addr.slice(0, 8);
+      return m('span.recipient-chip', { title: addr }, name);
+    })),
+    keys.length > 8 && m('span.msg-recipients-row__count', `${keys.length}`),
+  ]);
+}
 
 const MessageView = () => {
   let showCompose = false;
@@ -640,6 +650,7 @@ const MessageView = () => {
     timeStamp: '',
     files: [],
     msgtags: [],
+    msgflags: 0,
   };
 
   function loadMail(msgId) {
@@ -656,6 +667,7 @@ const MessageView = () => {
     MailData.sender = {};
     MailData.timeStamp = '';
     MailData.msgtags = [];
+    MailData.msgflags = 0;
 
     markMessageRead(msgId);
 
@@ -669,6 +681,7 @@ const MessageView = () => {
         MailData.subject = msgDetails.title || '(No Subject)';
         MailData.timeStamp = msgDetails.ts;
         MailData.msgtags = msgDetails.msgtags || (MessageCache[msgId] && MessageCache[msgId].msgtags) || [];
+        MailData.msgflags = msgDetails.msgflags || 0;
         isStarred = (msgDetails.msgflags & 0xf00) === RS_MSG_STAR;
         isSpam = Boolean(msgDetails.msgflags & RS_MSG_SPAM);
 
@@ -738,10 +751,7 @@ const MessageView = () => {
         else MessageCache[MailData.msgId].msgflags &= ~RS_MSG_SPAM;
       }
       triggerMessageUpdated(MailData.msgId, RS_MSG_SPAM, isSpam);
-      widget.popupMessage([
-        m('i.fas.fa-fire'),
-        m('h3', isSpam ? 'Marked as spam' : 'Removed from spam'),
-      ]);
+      toast.info(isSpam ? 'Marked as spam' : 'Removed from spam');
       m.redraw();
     });
   }
@@ -752,10 +762,7 @@ const MessageView = () => {
         MessageCache[MailData.msgId].msgflags |= RS_MSG_UNREAD_BY_USER;
       }
       triggerMessageUpdated(MailData.msgId, RS_MSG_UNREAD_BY_USER, true);
-      widget.popupMessage([
-        m('i.fas.fa-envelope'),
-        m('h3', 'Marked as unread'),
-      ]);
+      toast.info('Marked as unread');
       m.redraw();
     });
   }
@@ -763,12 +770,7 @@ const MessageView = () => {
   function deleteMail(vnode) {
     rs.rsJsonApiRequest('/rsMail/MessageToTrash', { msgId: MailData.msgId, bTrash: true });
     rs.rsJsonApiRequest('/rsMail/MessageDelete', { msgId: MailData.msgId }).then((res) => {
-      widget.popupMessage(
-        m('.widget', [
-          m('.widget__heading', m('h3', res.body.retval ? 'Success' : 'Error')),
-          m('.widget__body', m('p', res.body.retval ? 'Mail Deleted.' : 'Error in Deleting.')),
-        ])
-      );
+      toast.result(Boolean(res.body.retval), 'Mail deleted.', 'Could not delete the mail.');
       if (vnode.attrs.onDeleted) {
         vnode.attrs.onDeleted(MailData.msgId);
       } else {
@@ -778,10 +780,13 @@ const MessageView = () => {
   }
 
   function confirmMailDelete(vnode) {
-    widget.popupMessage([
-      m('p', 'Are you sure you want to delete this mail?'),
-      m('button.red', { onclick: () => deleteMail(vnode) }, 'Delete'),
-    ]);
+    widget.confirmMessage({
+      title: 'Delete mail',
+      message: 'This message will be removed from your node.',
+      confirmLabel: 'Delete',
+      danger: true,
+      onConfirm: () => deleteMail(vnode),
+    });
   }
 
   return {
@@ -799,6 +804,7 @@ const MessageView = () => {
       const toKeys = Object.keys(MailData.toList || {});
       const ccKeys = Object.keys(MailData.ccList || {});
       const bccKeys = Object.keys(MailData.bccList || {});
+      const isDraft = (MailData.msgflags & RS_MSG_BOXMASK) === RS_MSG_DRAFTBOX;
 
       return m(
         '.msg-view.mail-reading-card',
@@ -812,39 +818,53 @@ const MessageView = () => {
                   else m.route.set('/mail/:tab', { tab: m.route.param().tab || 'inbox' });
                 },
               },
-              m('i.fas.fa-chevron-left')
+              icon('chevron-left')
             ),
-            m('.msg-view-nav__action', [
+            //  A draft has not been sent, so there is nothing to reply to,
+            //  forward, mark unread or flag as spam. Two actions apply to it:
+            //  carry on writing, or throw it away.
+            m('.msg-view-nav__action', isDraft
+              ? [
+                  m('button.mail-action-btn.is-primary', {
+                    title: 'Continue writing this draft',
+                    onclick: () => { composeType = 'draft'; setShowCompose(true); },
+                  }, [icon('edit'), m('span.btn-text', ' Edit draft')]),
+                  m('button.mail-action-btn.mail-action-btn--delete', {
+                    title: 'Discard draft',
+                    onclick: () => confirmMailDelete(v),
+                  }, [icon('trash-alt'), m('span.btn-text', ' Discard')]),
+                ]
+              : [
               m('button.mail-action-btn', {
                 title: 'Reply',
                 onclick: () => { composeType = 'reply'; setShowCompose(true); },
-              }, [m('i.fas.fa-reply'), m('span.btn-text', ' Reply')]),
+              }, [icon('reply'), m('span.btn-text', ' Reply')]),
               m('button.mail-action-btn', {
                 title: 'Forward',
                 onclick: () => { composeType = 'forward'; setShowCompose(true); },
-              }, [m('i.fas.fa-forward'), m('span.btn-text', ' Forward')]),
+              }, [icon('forward'), m('span.btn-text', ' Forward')]),
               m('button.mail-action-btn', {
                 title: 'Reply All',
                 onclick: () => { composeType = 'replyAll'; setShowCompose(true); },
-              }, [m('i.fas.fa-reply-all'), m('span.btn-text', ' Reply All')]),
+              }, [icon('reply-all'), m('span.btn-text', ' Reply All')]),
               m('button.mail-action-btn', {
                 title: isStarred ? 'Unstar' : 'Star',
                 class: isStarred ? 'mail-action-btn--starred' : '',
                 onclick: toggleStar,
-              }, [m('i.fas.fa-star'), m('span.btn-text', isStarred ? ' Starred' : ' Star')]),
+              }, [icon(isStarred ? 'star-fill' : 'star'), m('span.btn-text', isStarred ? ' Starred' : ' Star')]),
               m('button.mail-action-btn', {
                 title: isSpam ? 'Remove from spam' : 'Mark as spam',
                 class: isSpam ? 'mail-action-btn--spam' : '',
                 onclick: toggleSpam,
-              }, [m('i.fas.fa-fire'), m('span.btn-text', isSpam ? ' Spam' : ' Spam')]),
+              }, [icon(isSpam ? 'fire-fill' : 'fire'), m('span.btn-text', 'Spam')]),
               m('button.mail-action-btn', {
                 title: 'Mark as unread',
                 onclick: markUnread,
-              }, [m('i.fas.fa-envelope'), m('span.btn-text', ' Unread')]),
+              }, [icon('envelope'), m('span.btn-text', ' Unread')]),
               m('button.mail-action-btn.mail-action-btn--delete', {
                 title: 'Delete mail',
                 onclick: () => confirmMailDelete(v),
-              }, [m('i.fas.fa-trash-alt'), m('span.btn-text', ' Delete')]),
+              }, [icon('trash-alt'), m('span.btn-text', ' Delete')]),
             ]),
           ]),
           m('.msg-view__header', [
@@ -855,15 +875,15 @@ const MessageView = () => {
                   const tag = getTagDetails(tagId);
                   return m('span.mail-card-tag-badge', {
                     title: tag.name,
-                    style: `background-color: ${tag.color}20; color: ${tag.color}; border: 1px solid ${tag.color}40;`,
-                  }, [m('span.mail-card-tag-dot', { style: `background-color: ${tag.color};` }), tag.name]);
+                    style: { '--tag': tag.color },
+                  }, [m('span.mail-card-tag-dot'), tag.name]);
                 })),
             ]),
             m('.msg-details', [
               MailData.sender &&
                 m(peopleUtil.UserAvatar, {
                   avatar: MailData.avatar,
-                  firstLetter: senderName.slice(0, 1).toUpperCase(),
+                  firstLetter: senderName,
                   identityId: senderAddr,
                   size: 46,
                 }),
@@ -890,44 +910,23 @@ const MessageView = () => {
                       new Date(MailData.timeStamp * 1000).toLocaleString()
                     ),
                 ]),
-                toKeys.length > 0 &&
-                  m('.msg-recipients-row', [
-                    m('span.recipient-label', 'To:'),
-                    toKeys.map((addr) => {
-                      const name = UserNicknamesCache[addr] || rs.userList.username(addr) || addr.slice(0, 8);
-                      return m('span.recipient-chip', { title: addr }, name);
-                    }),
-                  ]),
-                ccKeys.length > 0 &&
-                  m('.msg-recipients-row', [
-                    m('span.recipient-label', 'Cc:'),
-                    ccKeys.map((addr) => {
-                      const name = UserNicknamesCache[addr] || rs.userList.username(addr) || addr.slice(0, 8);
-                      return m('span.recipient-chip', { title: addr }, name);
-                    }),
-                  ]),
-                //  Own sent mail carries its Bcc list; the old view showed it.
-                bccKeys.length > 0 &&
-                  m('.msg-recipients-row', [
-                    m('span.recipient-label', 'Bcc:'),
-                    bccKeys.map((addr) => {
-                      const name = UserNicknamesCache[addr] || rs.userList.username(addr) || addr.slice(0, 8);
-                      return m('span.recipient-chip', { title: addr }, name);
-                    }),
-                  ]),
+                //  Bcc is on own sent mail only; the old view showed it.
+                recipientRow('To:', toKeys),
+                recipientRow('Cc:', ccKeys),
+                recipientRow('Bcc:', bccKeys),
               ]),
             ]),
           ]),
           MailData.files && MailData.files.length > 0 &&
             m('.msg-view__attachment', [
               m('h4.attachments-title', [
-                m('i.fas.fa-paperclip'),
+                icon('paperclip'),
                 m('span', `Attachments (${MailData.files.length})`),
               ]),
               m('.msg-view__attachment-items', m(AttachmentSection, { files: MailData.files })),
             ]),
           m('.msg-view__body', [
-            m('.mail-body-container', m.trust(MailData.message || '<p style="color: #94a3b8; font-style: italic;">(No message content)</p>')),
+            m('.mail-body-container', m.trust(MailData.message || '<p class="mail-body-empty">(No message content)</p>')),
           ]),
           showCompose &&
             m(
@@ -943,15 +942,22 @@ const MessageView = () => {
                       //  The prefix depends on the ACTION, not on whatever
                       //  prefix the subject already has: forwarding "Re: X"
                       //  must send "Fwd: Re: X", not "Re: X".
-                      subject: composeType === 'forward'
-                        ? (MailData.subject.startsWith('Fwd:') ? MailData.subject : `Fwd: ${MailData.subject}`)
-                        : (MailData.subject.startsWith('Re:') ? MailData.subject : `Re: ${MailData.subject}`),
+                      subject: composeType === 'draft'
+                        ? MailData.subject
+                        : composeType === 'forward'
+                          ? (MailData.subject.startsWith('Fwd:') ? MailData.subject : `Fwd: ${MailData.subject}`)
+                          : (MailData.subject.startsWith('Re:') ? MailData.subject : `Re: ${MailData.subject}`),
                       replyMessage: MailData.message,
                       timeStamp: new Date(MailData.timeStamp * 1000),
+                      //  Only when resuming: saving then replaces this
+                      //  draft instead of leaving a second copy behind.
+                      draftMsgId: composeType === 'draft' ? MailData.msgId : undefined,
                       setShowCompose,
                     })
                   : m('.widget', m('.widget__heading', m('h3', 'Sender is not known'))),
-                m('button.red.close-btn', { onclick: () => setShowCompose(false) }, m('i.fas.fa-times'))
+                m('button.red.close-btn', {
+                  onclick: () => compose.requestClose(() => setShowCompose(false)),
+                }, icon('times'))
               )
             ),
           renderMailUserTooltip(),
@@ -961,22 +967,40 @@ const MessageView = () => {
   };
 };
 
+//  `column: null` is the unsorted state -- newest first, the order the core
+//  hands the list back in.
 const SortState = {
   column: 'date',
   direction: 'desc',
 };
 
+//  Three clicks on one header: ascending, descending, off. Moving to another
+//  header starts that cycle over, so a column is never picked up mid-way.
 function setSort(column) {
-  if (SortState.column === column) {
-    SortState.direction = SortState.direction === 'asc' ? 'desc' : 'asc';
-  } else {
+  if (SortState.column !== column) {
     SortState.column = column;
-    SortState.direction = (column === 'date' || column === 'attachments' || column === 'starred' || column === 'spam') ? 'desc' : 'asc';
+    SortState.direction = 'asc';
+    return;
   }
+  if (SortState.direction === 'asc') {
+    SortState.direction = 'desc';
+    return;
+  }
+  SortState.column = null;
+  SortState.direction = 'desc';
 }
 
 function sortList(list) {
   if (!list) return [];
+  //  Unsorted: newest first, which is what the list looks like before anyone
+  //  touches a header.
+  if (!SortState.column) {
+    return [...list].sort((msgA, msgB) => {
+      const aTs = Number(MessageCache[msgA.msgId]?.ts || msgA.ts?.xint64 || msgA.ts || 0);
+      const bTs = Number(MessageCache[msgB.msgId]?.ts || msgB.ts?.xint64 || msgB.ts || 0);
+      return bTs - aTs;
+    });
+  }
   return [...list].sort((msgA, msgB) => {
     let valA, valB;
     switch (SortState.column) {
@@ -1042,26 +1066,30 @@ const Table = () => {
     view: (v) => {
       const renderHeader = (colName, label, isIcon = false) => {
         const isActive = SortState.column === colName;
+        //  A caret for the direction, `arrows-down-up` when idle. The
+        //  sort-ascending/descending glyphs are bars-plus-arrow, too busy to
+        //  read at 12px; colour is what says "this is the sorted column".
         const iconClass = isActive
-          ? (SortState.direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down')
-          : 'fas fa-sort';
+          ? (SortState.direction === 'asc' ? 'sort-up' : 'sort-down')
+          : 'sort';
+        const next = !isActive ? 'ascending'
+          : SortState.direction === 'asc' ? 'descending' : 'unsorted';
         return m(
           `th.sortable-th.col-${colName}`,
           {
             onclick: () => setSort(colName),
-            style: { cursor: 'pointer', userSelect: 'none' },
+            title: `Sort ${next}`,
+            'aria-sort': isActive
+              ? (SortState.direction === 'asc' ? 'ascending' : 'descending')
+              : 'none',
           },
-          [
+          //  One row, always: the label and its sort glyph beside it. Without
+          //  the wrapper the glyph fell to a second line in the two icon-only
+          //  columns, since a `th` is not a flex container.
+          m('.sortable-th__inner', [
             isIcon ? label : m('span', label),
-            ' ',
-            m(`i.${iconClass}`, {
-              style: {
-                marginLeft: '0.25rem',
-                opacity: isActive ? 1 : 0.2,
-                transition: 'opacity 0.2s',
-              },
-            }),
-          ]
+            icon(iconClass, { class: isActive ? 'sort-glyph is-active' : 'sort-glyph' }),
+          ])
         );
       };
 
@@ -1080,57 +1108,31 @@ const Table = () => {
       if (currentPage >= totalPages) currentPage = totalPages - 1;
       if (currentPage < 0) currentPage = 0;
 
-      const paginationUI = totalItems > pageSize && m('.pagination', {
-        style: {
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: '1rem',
-          padding: '1rem',
-          borderTop: '1px solid #eee',
-          fontSize: '1rem',
-          color: '#555',
-          userSelect: 'none'
-        }
-      }, [
-        m('button', {
+      //  `.pagination` is already styled inside .table-pagination-container --
+      //  the inline block that used to sit here was overriding a rule that had
+      //  it right. A disabled button already looks disabled, too.
+      const paginationUI = totalItems > pageSize && m('.pagination', [
+        m('button.is-icon[type=button][aria-label=Previous page]', {
           disabled: currentPage === 0,
           onclick: () => currentPage--,
-          style: {
-            padding: '0.4rem 0.8rem',
-            background: currentPage === 0 ? '#ccc' : '#019dff',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: currentPage === 0 ? 'not-allowed' : 'pointer',
-            boxShadow: 'none'
-          }
-        }, m('i.fas.fa-chevron-left')),
-        m('span.bold', `${totalItems > 0 ? currentPage * pageSize + 1 : 0} - ${Math.min((currentPage + 1) * pageSize, totalItems)} of ${totalItems}`),
-        m('button', {
+        }, icon('chevron-left')),
+        m('span.pagination__range',
+          `${totalItems > 0 ? currentPage * pageSize + 1 : 0} - ${Math.min((currentPage + 1) * pageSize, totalItems)} of ${totalItems}`),
+        m('button.is-icon[type=button][aria-label=Next page]', {
           disabled: currentPage >= totalPages - 1,
           onclick: () => currentPage++,
-          style: {
-            padding: '0.4rem 0.8rem',
-            background: currentPage >= totalPages - 1 ? '#ccc' : '#019dff',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: currentPage >= totalPages - 1 ? 'not-allowed' : 'pointer',
-            boxShadow: 'none'
-          }
-        }, m('i.fas.fa-chevron-right'))
+        }, icon('chevron-right'))
       ]);
 
       return m('.table-pagination-container', [
         m('table.mails', [
           m('tr', [
-            renderHeader('starred', m('i.fas.fa-star'), true),
-            renderHeader('attachments', m('i.fas.fa-paperclip'), true),
+            renderHeader('starred', icon('star'), true),
+            renderHeader('attachments', icon('paperclip'), true),
             renderHeader('subject', 'Subject'),
             renderHeader('from', 'From'),
-            renderHeader('spam', m('i.fas.fa-fire'), true),
-            renderHeader('date', 'Date'),
+            renderHeader('spam', icon('fire'), true),
+            renderHeader('date', 'Date & time'),
             m('th.col-spacer'),
           ]),
           tbody,
@@ -1146,7 +1148,8 @@ const SearchBar = () => {
   let searchString = '';
   return {
     view: ({ attrs: { list } }) =>
-      m('input[type=text][placeholder=Search Subject].searchbar', {
+      m(widget.SearchField, {
+        placeholder: 'Search subject',
         value: searchString,
         oninput: (e) => {
           searchString = e.target.value.toLowerCase();
@@ -1163,22 +1166,44 @@ const activeSideLink = {
   quicksideactive: -1,
 };
 
-const sidebarIcons = {
-  inbox: m('i.fas.fa-inbox', { style: 'color: #3b82f6; margin-right: 0.75rem; font-size: 24px; width: 24px; text-align: center;' }),
-  outbox: m('i.fas.fa-envelope-open-text', { style: 'color: #10b981; margin-right: 0.75rem; font-size: 24px; width: 24px; text-align: center;' }),
-  drafts: m('i.fas.fa-edit', { style: 'color: #6b7280; margin-right: 0.75rem; font-size: 24px; width: 24px; text-align: center;' }),
-  sent: m('i.fas.fa-envelope-open', { style: 'color: #f59e0b; margin-right: 0.75rem; font-size: 24px; width: 24px; text-align: center;' }),
-  trash: m('i.fas.fa-trash-alt', { style: 'color: #ef4444; margin-right: 0.75rem; font-size: 24px; width: 24px; text-align: center;' }),
-  starred: m('i.fas.fa-star', { style: 'color: #eab308; margin-right: 0.75rem; font-size: 24px; width: 24px; text-align: center;' }),
-  system: m('i.fas.fa-bell', { style: 'color: #3b82f6; margin-right: 0.75rem; font-size: 24px; width: 24px; text-align: center;' }),
-  spam: m('i.fas.fa-fire', { style: 'color: #f97316; margin-right: 0.75rem; font-size: 24px; width: 24px; text-align: center;' }),
-  attachment: m('i.fas.fa-paperclip', { style: 'color: #06b6d4; margin-right: 0.75rem; font-size: 24px; width: 24px; text-align: center;' }),
-  important: m('i.fas.fa-square', { style: 'color: #ef4444; margin-right: 0.75rem; font-size: 24px; width: 24px; text-align: center;' }),
-  work: m('i.fas.fa-square', { style: 'color: #f97316; margin-right: 0.75rem; font-size: 24px; width: 24px; text-align: center;' }),
-  personal: m('i.fas.fa-square', { style: 'color: #22c55e; margin-right: 0.75rem; font-size: 24px; width: 24px; text-align: center;' }),
-  todo: m('i.fas.fa-square', { style: 'color: #3b82f6; margin-right: 0.75rem; font-size: 24px; width: 24px; text-align: center;' }),
-  later: m('i.fas.fa-square', { style: 'color: #a855f7; margin-right: 0.75rem; font-size: 24px; width: 24px; text-align: center;' }),
+//  Folder glyphs. They used to carry nine unrelated colours -- a blue inbox,
+//  an emerald outbox, an amber sent tray -- which made the column read as a
+//  legend rather than a list of places, and left selection with nothing of its
+//  own to say. They inherit the link's colour now, so the selected folder is
+//  the only coloured thing in the column.
+//
+//  The five Quick View entries are tags, where the colour IS the data: those
+//  keep it, taken from the tag the core defines rather than written here.
+const folderIcons = {
+  inbox: 'inbox',
+  outbox: 'envelope-open-text',
+  drafts: 'edit',
+  sent: 'envelope-open',
+  trash: 'trash-alt',
+  starred: 'star',
+  system: 'bell',
+  spam: 'fire',
+  attachment: 'paperclip',
 };
+
+const quickViewTagIds = {
+  important: 1,
+  work: 2,
+  personal: 3,
+  todo: 4,
+  later: 5,
+};
+
+function sidebarIcon(panelName) {
+  if (folderIcons[panelName]) {
+    return icon(folderIcons[panelName], { class: 'sidebar-link-icon' });
+  }
+  const tagId = quickViewTagIds[panelName];
+  if (!tagId) return null;
+  return m('span.sidebar-link-swatch', {
+    style: { backgroundColor: getTagDetails(tagId).color },
+  });
+}
 
 const Sidebar = () => {
   return {
@@ -1191,7 +1216,6 @@ const Sidebar = () => {
             m.route.Link,
             {
               class: index === activeSideLink.sideactive ? 'selected-sidebar-link' : '',
-              style: 'display: flex; align-items: center;',
               onclick: () => {
                 activeSideLink.sideactive = index;
                 activeSideLink.quicksideactive = -1;
@@ -1200,7 +1224,7 @@ const Sidebar = () => {
               href: baseRoute + panelName,
             },
             [
-              sidebarIcons[panelName] || null,
+              sidebarIcon(panelName),
               m('span.sidebar-link-text', displayName),
               size[panelName] > 0 && m('span.sidebar-badge', size[panelName]),
             ]
@@ -1224,7 +1248,6 @@ const SidebarQuickView = () => {
             {
               class:
                 index === activeSideLink.quicksideactive ? 'selected-sidebarquickview-link' : '',
-              style: 'display: flex; align-items: center;',
               onclick: () => {
                 activeSideLink.quicksideactive = index;
                 activeSideLink.sideactive = -1;
@@ -1233,7 +1256,7 @@ const SidebarQuickView = () => {
               href: baseRoute + panelName,
             },
             [
-              sidebarIcons[panelName] || null,
+              sidebarIcon(panelName),
               m('span.sidebar-link-text', displayName),
               size[panelName] > 0 && m('span.sidebar-badge', size[panelName]),
             ]
@@ -1277,4 +1300,5 @@ module.exports = {
   onMessageUpdated,
   triggerMessageUpdated,
   MessageCache,
+  getTagDetails,
 };

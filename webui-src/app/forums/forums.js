@@ -1,8 +1,10 @@
 const m = require('mithril');
+const widget = require('widgets');
 const rs = require('rswebui');
 const util = require('forums/forums_util');
 const viewUtil = require('forums/forum_view');
 const peopleUtil = require('people/people_util');
+const icon = require('icon');
 
 const getForums = {
   All: [],
@@ -29,11 +31,32 @@ const getForums = {
 const FORUM_LIST_REFRESH_MS = 30000;
 
 const sections = {
-  All: require('forums/popular_forums'),
   MyForums: require('forums/my_forums'),
   Subscribed: require('forums/subscribed_forums'),
   Popular: require('forums/popular_forums'),
   Other: require('forums/other_forums'),
+};
+
+const navLabels = {
+  MyForums: 'My Forums',
+  Subscribed: 'Subscribed',
+  Popular: 'Popular',
+  Other: 'All Forums',
+};
+
+//  The page title, which can say more than the rail label beside it.
+const pageTitles = {
+  MyForums: 'My Forums',
+  Subscribed: 'Subscribed Forums',
+  Popular: 'Popular Forums',
+  Other: 'All Forums',
+};
+
+const navIcons = {
+  MyForums: 'comments',
+  Subscribed: 'bookmark',
+  Popular: 'fire',
+  Other: 'globe',
 };
 
 const Layout = () => {
@@ -45,7 +68,11 @@ const Layout = () => {
         authorId: ownId,
         onCreated: getForums.load,
       }),
-      'create-forum-modal'
+      'create-forum-modal',
+      {
+        title: 'Create Forum',
+        lead: 'Set up the forum and choose its publishing permissions.',
+      }
     );
 
   return {
@@ -72,19 +99,20 @@ const Layout = () => {
       return m('.widget', {
         class: isForumDetail ? 'forums-detail-widget' : isThreadDetail ? 'forums-thread-widget' : '',
       }, [
-        m('.top-heading', [
-          vnode.attrs.pathInfo.tab === 'MyForums' &&
-          m(
-            'button.forums-create-button',
-            {
-              onclick: createForum,
-            },
-            'Create Forum'
-          ),
-          m(util.SearchBar, {
-            list: getForums.All,
-          }),
-        ]),
+        //  Only the list views get a page header: a forum and a thread carry
+        //  their own heading, which is the forum's name rather than the tab's.
+        !isForumDetail && !isThreadDetail && m(widget.PageHead, {
+          title: pageTitles[vnode.attrs.pathInfo.tab] || 'Forums',
+          actions: [
+            vnode.attrs.pathInfo.tab === 'MyForums' &&
+              m('button.forums-create-button.is-primary', {
+                onclick: createForum,
+              }, [icon('plus'), 'Create Forum']),
+            m(util.SearchBar, {
+              list: getForums.All,
+            }),
+          ],
+        }),
         Object.prototype.hasOwnProperty.call(vnode.attrs.pathInfo, 'mMsgId') // thread's view
           ? m(viewUtil.ThreadView, {
             msgId: vnode.attrs.pathInfo.mMsgId,
@@ -96,14 +124,7 @@ const Layout = () => {
               onSubscriptionChange: getForums.load,
             })
             : m(sections[vnode.attrs.pathInfo.tab], {
-              //  The full list, not Popular ∪ Other: getForums has no Other key,
-              //  and the merge only worked because forums' Popular happens to
-              //  alias the full list -- a trap for whoever makes it a top-5.
-              list: vnode.attrs.pathInfo.tab === 'All'
-                ? getForums.All
-                : getForums[vnode.attrs.pathInfo.tab],
-              title: vnode.attrs.pathInfo.tab === 'All' ? 'All Forums' : undefined,
-              category: vnode.attrs.pathInfo.tab,
+              list: getForums[vnode.attrs.pathInfo.tab],
               onCreateForum: createForum,
             }),
       ]);
@@ -112,12 +133,17 @@ const Layout = () => {
 };
 
 module.exports = {
-  view: (vnode) => m(require('library_layout'), {
-    title: 'Forums',
-    icon: 'bullhorn',
-    tabs: Object.keys(sections).filter((tab) => tab !== 'All'),
-    mobileTabs: [{ tab: 'MyForums', label: 'My' }, 'Subscribed', 'All'],
-    baseRoute: '/forums/',
-    detailOpen: Boolean(vnode.attrs.mGroupId),
-  }, m(Layout, { pathInfo: vnode.attrs })),
+  view: (vnode) => {
+    return [
+      m(widget.Sidebar, {
+        tabs: Object.keys(sections),
+        baseRoute: '/forums/',
+        mobileDrawer: true,
+        title: 'Forums',
+        labels: navLabels,
+        icons: navIcons,
+      }),
+      m('.node-panel', m(Layout, { pathInfo: vnode.attrs })),
+    ];
+  },
 };

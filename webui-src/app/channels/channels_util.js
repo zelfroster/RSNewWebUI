@@ -1,5 +1,7 @@
 const m = require('mithril');
 const rs = require('rswebui');
+const icon = require('icon');
+const widget = require('widgets');
 
 // rstypes.h:96
 const GROUP_SUBSCRIBE_ADMIN = 0x01; //  means: you have the admin key for this group
@@ -240,7 +242,7 @@ const FilesTable = () => {
     oninit: (v) => {},
     view: (v) =>
       m('table.files.channel-files', [
-        m('thead', m('tr', [m('th', 'File Name'), m('th', 'Size'), m('th', m('i.fas.fa-download'))])),
+        m('thead', m('tr', [m('th', 'File Name'), m('th', 'Size'), m('th', icon('download'))])),
         v.children,
       ]),
   };
@@ -256,10 +258,10 @@ const SearchBar = () => {
   let searchString = '';
   return {
     view: (v) =>
-      m('input[type=text][placeholder=Search Subject].searchbar', {
-        value: searchString,
+      m(widget.SearchField, {
         placeholder:
-          v.attrs.category.localeCompare('channels') === 0 ? 'Search Channels' : 'Search Posts',
+          v.attrs.category.localeCompare('channels') === 0 ? 'Search channels' : 'Search posts',
+        value: searchString,
         oninput: (e) => {
           searchString = e.target.value.toLowerCase();
           if (v.attrs.category.localeCompare('channels') === 0) {

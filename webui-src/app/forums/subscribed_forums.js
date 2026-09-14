@@ -4,7 +4,6 @@ const util = require('forums/forums_util');
 const Layout = () => {
   return {
     view: (v) => [
-      m('.widget__heading', m('h3', 'Subscribed Forums')),
       m('.widget__body', [
         m(
           util.ForumTable,

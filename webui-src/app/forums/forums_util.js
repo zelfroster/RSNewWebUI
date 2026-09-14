@@ -262,8 +262,11 @@ const SearchBar = () => {
   let searchString = '';
   return {
     view: (v) =>
-      m('input[type=text][id=searchforum][placeholder=Search Subject].searchbar', {
+      m(widget.SearchField, {
+        id: 'searchforum',
+        placeholder: 'Search subject',
         value: searchString,
+        onclear: () => { searchString = ''; updatedisplayforums(); },
         oninput: (e) => {
           searchString = e.target.value.toLowerCase();
           for (const hash in Data.DisplayForums) {
@@ -277,8 +280,8 @@ const SearchBar = () => {
       }),
   };
 };
-function popupmessage(message, modalClass = '') {
-  widget.popupMessage(message, modalClass);
+function popupmessage(message, modalClass = '', options = {}) {
+  widget.popupMessage(message, modalClass, options);
 }
 
 module.exports = {

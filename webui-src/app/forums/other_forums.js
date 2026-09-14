@@ -1,8 +1,9 @@
 const m = require('mithril');
 
+//  The page header names this tab; there is no list behind it yet.
 const Layout = () => {
   return {
-    view: () => [m('.widget__heading', m('h3', 'Other Forums'))],
+    view: () => m('.empty', m('b', 'No forums to show')),
   };
 };
 

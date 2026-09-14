@@ -3,6 +3,8 @@ const rs = require('rswebui');
 const util = require('files/files_util');
 const widget = require('widgets');
 const fileDown = require('files/files_downloads');
+const icon = require('icon');
+const toast = require('toast');
 
 function displayfiles() {
   const childrenList = []; // stores children details
@@ -40,9 +42,8 @@ function displayfiles() {
         parStruct && parStruct.details.children && Object.keys(parStruct.details.children).length
           ? m(
               'td',
-              m('i.fas.fa-angle-right', {
-                class: 'fa-rotate-' + (parStruct.showChild ? '90' : '0'),
-                style: 'margin-top:12px',
+              icon('angle-right', {
+                class: parStruct.showChild ? 'icon--rot-90' : '',
                 onclick: async () => {
                   if (!loaded) {
                     // Retrieve the directory entries before displaying the nested rows.
@@ -74,17 +75,20 @@ function displayfiles() {
             },
           },
           [
-            m('i.fas', {
-              class: isId
-                ? 'fa-user-friends friends-files__friend-icon'
-                : !isFile
-                  ? parStruct.showChild
-                    ? 'fa-folder-open friends-files__folder-icon'
-                    : 'fa-folder friends-files__folder-icon'
-                  : 'fa-file friends-files__file-icon',
-              title: isId ? 'Friend' : isFile ? 'File' : 'Folder',
-              style: 'margin-right:0.45rem',
-            }),
+            icon(
+              isId ? 'user-friends' : !isFile ? (parStruct.showChild ? 'folder-open' : 'folder') : 'file',
+              {
+                // A friend node is the one icon here that carries reach, so it
+                // is the one that ships duotone.
+                duo: isId,
+                class: isId
+                  ? 'friends-files__friend-icon'
+                  : !isFile
+                    ? 'friends-files__folder-icon'
+                    : 'friends-files__file-icon',
+                title: isId ? 'Friend' : isFile ? 'File' : 'Folder',
+              }
+            ),
             isId
               ? (nameOfId || parStruct.details.name) +
                 ' (' +
@@ -105,48 +109,32 @@ function displayfiles() {
                   transferred: fileDown.list[parStruct.details.hash].transfered.xint64,
                   parts: [],
                 })
-              : m(
-                  'button',
+              : m('button.is-primary',
                   {
                     style: { fontSize: '0.9em' },
-                    onclick: async () => {
-                      widget.popupMessage([
-                        m('p', 'Start Download?'),
-                        m(
-                          'button',
-                          {
-                            onclick: async () => {
-                              if (!haveFile) {
-                                const res = await rs.rsJsonApiRequest('/rsFiles/FileRequest', {
-                                  fileName: parStruct.details.name,
-                                  hash: parStruct.details.hash,
-                                  flags: util.RS_FILE_REQ_ANONYMOUS_ROUTING,
-                                  size: {
-                                    xstr64: parStruct.details.size.xstr64,
-                                  },
-                                });
-                                res.body.retval === false
-                                  ? widget.popupMessage([
-                                      m('h3', 'Error'),
-                                      m('hr'),
-                                      m('p', res.body.errorMessage),
-                                    ])
-                                  : widget.popupMessage([
-                                      m('h3', 'Success'),
-                                      m('hr'),
-                                      m('p', 'Download Started'),
-                                    ]);
-                                m.redraw();
-                              }
-                            },
+                    onclick: () => widget.confirmMessage({
+                      title: 'Start Download?',
+                      message: parStruct.details.name,
+                      confirmLabel: 'Start download',
+                      onConfirm: async () => {
+                        if (haveFile) return;
+                        const res = await rs.rsJsonApiRequest('/rsFiles/FileRequest', {
+                          fileName: parStruct.details.name,
+                          hash: parStruct.details.hash,
+                          flags: util.RS_FILE_REQ_ANONYMOUS_ROUTING,
+                          size: {
+                            xstr64: parStruct.details.size.xstr64,
                           },
-                          'Start Download'
-                        ),
-                      ]);
-                    },
+                        });
+                        res.body.retval === false
+                          ? toast.error(res.body.errorMessage)
+                          : toast.success('Download Started');
+                        m.redraw();
+                      },
+                    }),
                   },
 
-                  haveFile ? 'Open File' : ['Download', m('i.fas.fa-download')]
+                  haveFile ? 'Open File' : [m('span', 'Download'), icon('download')]
                 )
           ),
       ]),
@@ -189,7 +177,10 @@ const Layout = () => {
       m.redraw();
     },
     view: () => [
-      m('.widget__heading', [m('h3', 'Friends Files')]),
+      m(widget.PageHead, {
+        title: 'Friends\' Files',
+        lead: 'Browse what the friends you are connected to are sharing.',
+      }),
       m('.widget__body', [
         m(
           util.FriendsFilesTable,

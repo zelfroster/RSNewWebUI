@@ -19,7 +19,8 @@ function renderIdentityTooltip({ details, gxsId, name, rect, overlapAnchor = fal
   if (top + 160 > window.innerHeight) top = window.innerHeight - 170;
   if (top < gap) top = gap;
 
-  // Measure the rendered tooltip so long names and IDs stay within the viewport.
+  //  Measured after render: a long name or a full GXS id changes the box, and
+  //  an unmeasured guess puts it off the bottom or the right of the viewport.
   const positionBelow = ({ dom }) => {
     const bounds = dom.getBoundingClientRect();
     const x = Math.max(gap, Math.min(rect.left, window.innerWidth - bounds.width - gap));
@@ -37,10 +38,11 @@ function renderIdentityTooltip({ details, gxsId, name, rect, overlapAnchor = fal
   return m('.user-tooltip', {
     oncreate: belowAnchor ? positionBelow : undefined,
     onupdate: belowAnchor ? positionBelow : undefined,
-    style: { top: `${top}px`, left: `${left}px` } }, [
+    style: { top: `${top}px`, left: `${left}px` },
+  }, [
     m('.tooltip-avatar', m(peopleUtil.UserAvatar, {
       avatar,
-      firstLetter: (name || '?').slice(0, 1).toUpperCase(),
+      firstLetter: name,
       identityId: gxsId,
       size: 56,
       isSquare: true,
@@ -55,7 +57,7 @@ function renderIdentityTooltip({ details, gxsId, name, rect, overlapAnchor = fal
       m('.tooltip-row', [
         m('span.tooltip-label', 'Votes: '),
         m('span.tooltip-value', {
-          style: { color: votes >= 0 ? '#008000' : '#cc0000', fontWeight: 'bold' },
+          class: votes >= 0 ? 'is-positive' : 'is-negative',
         }, `${votes >= 0 ? '+' : ''}${votes}`),
       ]),
     ]),

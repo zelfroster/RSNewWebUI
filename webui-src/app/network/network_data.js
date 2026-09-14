@@ -193,7 +193,9 @@ Data.getStatusPresentation = function (statusValue, isOnline = false) {
   return {
     value,
     label: ['Offline', 'Away', 'Busy', 'Online', 'Inactive'][value] || (isOnline ? 'Online' : 'Offline'),
-    color: ['#94a3b8', '#eab308', '#ef4444', '#10b981', '#f59e0b'][value] || '#94a3b8',
+    color: [
+      'var(--ink-faint)', 'var(--warn)', 'var(--down)', 'var(--up)', 'var(--warn)',
+    ][value] || 'var(--ink-faint)',
   };
 };
 

@@ -4,6 +4,7 @@ const widget = require('widgets');
 const peopleUtil = require('people/people_util');
 const chatPreviewText = require('chat/chat_preview');
 const ownIdsLayout = require('people/people_ownids');
+const icon = require('icon');
 const { CreateIdentity } = ownIdsLayout;
 const {
   State,
@@ -111,49 +112,48 @@ const PeopleSidebar = () => {
         // Sidebar Header Container
         m('.people-sidebar-header', [
           // 1. Top Search Bar
-          m('.searchbar-wrapper', [
-            m('i.fas.fa-search'),
-            m('input.searchbar-input[type=text][placeholder=Search...]', {
-              value: State.searchString,
-              oninput: (e) => {
-                State.searchString = e.target.value;
+          m(widget.SearchField, {
+            class: 'searchbar-wrapper',
+            placeholder: 'Search',
+            value: State.searchString,
+            oninput: (e) => {
+              State.searchString = e.target.value;
+            },
+            onclear: () => {
+              State.searchString = '';
+            },
+          }),
+
+          //  2. Tabs, and the People filter beside them. The filter used to
+          //  own a row of its own, which on the Chats tab was an empty strip
+          //  and on People was one short control against a pane of dead
+          //  space. Same shape as the mail list: tabs left, filter right.
+          m('.people-filter-row', [
+            m(widget.Segmented, {
+              class: 'segmented-control',
+              ariaLabel: 'Show',
+              value: State.mainTab,
+              options: [
+                { id: 'people', label: 'People', icon: 'users' },
+                {
+                  id: 'chats',
+                  label: 'Chats',
+                  icon: 'comments',
+                  badge: unreadChatsCount > 0 ? unreadChatsCount : undefined,
+                },
+              ],
+              onSelect: (tab) => {
+                State.mainTab = tab;
+                if (tab === 'chats') preloadAllChatHistory();
+                m.redraw();
               },
             }),
-          ]),
 
-          // 2. Dual Segmented Tab Control: [People] | [Chats]
-          m('.segmented-control', [
-            m(
-              'button.segment-tab' + (State.mainTab === 'people' ? '.active' : ''),
-              {
-                onclick: () => {
-                  State.mainTab = 'people';
-                  m.redraw();
-                },
-              },
-              [m('i.fas.fa-users'), ' People']
-            ),
-            m(
-              'button.segment-tab' + (State.mainTab === 'chats' ? '.active' : ''),
-              {
-                onclick: () => {
-                  State.mainTab = 'chats';
-                  preloadAllChatHistory();
-                  m.redraw();
-                },
-              },
-              [
-                m('i.fas.fa-comments'),
-                ' Chats',
-                unreadChatsCount > 0 && m('span.segment-badge', unreadChatsCount),
-              ]
-            ),
-          ]),
-
-
-          // 3. Sub-Filter Row (People Tab)
-          State.mainTab === 'people' &&
-            m('.sub-filter-row', [
+            //  Filter and its add button travel together: on a narrow pane
+            //  they wrap to a second line as a pair, still right-aligned,
+            //  rather than the button dropping off on its own.
+            State.mainTab === 'people' &&
+              m('.people-filter-row__end', [
               m(
                 'select.filter-select',
                 {
@@ -176,22 +176,31 @@ const PeopleSidebar = () => {
                   m('option[value=all]', 'All Users'),
                 ]
               ),
+
               State.activeFilter === 'own' &&
                 m(
                   'button.btn-add-id[title=Create New Identity]',
                   {
-                    onclick: () => widget.popupMessage(m(CreateIdentity), 'create-identity-modal'),
+                    onclick: () => widget.popupMessage(
+                      m(CreateIdentity),
+                      'create-identity-modal',
+                      {
+                        title: 'Create New Identity',
+                        lead: 'Choose a name, identity type, and optional custom avatar.',
+                      }
+                    ),
                   },
-                  m('i.fas.fa-plus')
+                  icon('plus')
                 ),
-            ]),
+              ]),
+          ]),
         ]),
 
         // Scrollable List Container
         m('.friends-list-container', [
           m('.friends-scroll', [
             displayItems.length === 0
-              ? m('.network-pane-placeholder', { style: 'padding: 2rem 0;' }, State.mainTab === 'chats' ? 'No active chats' : 'No identities found')
+              ? m('.network-pane-placeholder', State.mainTab === 'chats' ? 'No active chats' : 'No identities found')
               : shownItems.map((item) => {
                   let gxsId;
                   if (State.mainTab === 'people' && State.activeFilter === 'own') {
@@ -262,9 +271,7 @@ const PeopleSidebar = () => {
                             size: 40,
                           }),
                           m('.status-dot', {
-                            style: {
-                              backgroundColor: hasActiveTunnel ? '#22c55e' : '#cbd5e1',
-                            },
+                            class: hasActiveTunnel ? 'is-good' : 'is-off',
                             title: hasActiveTunnel
                               ? 'Distant chat tunnel active'
                               : 'Distant chat tunnel inactive',
@@ -346,9 +353,8 @@ const PeopleSidebar = () => {
                     ]
                   );
                 }),
-            hiddenCount > 0 && m('.friends-list-more', {
-              style: 'padding: 0.75rem 1rem; color: #64748b; font-size: 0.85rem; font-style: italic;',
-            }, `${hiddenCount} more identities — search to narrow the list`),
+            hiddenCount > 0 && m('.friends-list-more',
+              `${hiddenCount} more identities — search to narrow the list`),
           ]),
 
           // Context Menu
@@ -358,11 +364,6 @@ const PeopleSidebar = () => {
 
             return [
               m('.menu-backdrop', {
-                style: {
-                  position: 'fixed',
-                  inset: 0,
-                  zIndex: 9998,
-                },
                 onclick: (e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -398,7 +399,7 @@ const PeopleSidebar = () => {
                     m.redraw();
                   },
                 }, [
-                  m('i.fas.fa-comments', { style: 'color: #3b82f6; margin-right: 0.5rem;' }),
+                  icon('comments'),
                   'Start chat',
                 ]),
                 !isOwn && m('.menu-item', {
@@ -410,7 +411,7 @@ const PeopleSidebar = () => {
                     m.redraw();
                   },
                 }, [
-                  m('i.fas.fa-envelope', { style: 'color: #10b981; margin-right: 0.5rem;' }),
+                  icon('envelope'),
                   'Send mail',
                 ]),
                 !isOwn && m('.menu-item', {
@@ -431,13 +432,8 @@ const PeopleSidebar = () => {
                     );
                   },
                 }, [
-                  m('i.fas' + (menu.isContact ? '.fa-user-minus' : '.fa-user-plus'), {
-                    style: {
-                      color: menu.isContact ? '#ef4444' : '#3b82f6',
-                      marginRight: '0.5rem',
-                    },
-                  }),
-                  menu.isContact ? 'Remove from Contacts' : 'Add to Contacts',
+                  icon(menu.isContact ? 'user-minus' : 'user-plus'),
+                  menu.isContact ? 'Remove from contacts' : 'Add to contacts',
                 ]),
               ]),
             ];

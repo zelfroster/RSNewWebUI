@@ -2,6 +2,8 @@ const m = require('mithril');
 const rs = require('rswebui');
 const util = require('files/files_util');
 const manager = require('files/files_manager');
+const icon = require('icon');
+const widget = require('widgets');
 
 const translateName = (name) => {
   const n = name.toLowerCase().trim();
@@ -26,9 +28,8 @@ const DisplayFiles = () => {
         parStruct && parStruct.details.children && parStruct.details.children.length
           ? m(
             'td',
-            m('i.fas.fa-angle-right', {
-              class: `fa-rotate-${parStruct.showChild ? '90' : '0'}`,
-              style: 'margin-top: 0.5rem',
+            icon('angle-right', {
+              class: parStruct.showChild ? 'icon--rot-90' : '',
               onclick: async () => {
                 if (!loaded) {
                   // if it is not already retrieved
@@ -63,10 +64,9 @@ const DisplayFiles = () => {
           },
           [
             parStruct.details.children !== undefined
-              ? m('i.fas', {
-                  class: parStruct.showChild ? 'fa-folder-open' : 'fa-folder',
+              ? icon(parStruct.showChild ? 'folder-open' : 'folder', {
                   title: 'Folder',
-                  style: 'margin-right: 0.45rem; color: #d69e2e;',
+                  class: 'files-folder-icon',
                 })
               : null,
             translateName(parStruct.details.name || ''),
@@ -115,18 +115,19 @@ const Layout = () => {
       });
     },
     view: () => [
-      m('.widget__heading', [
-        m('h3', 'My Files'),
-        m(
-          'button.my-files__configure-shares',
+      m(widget.PageHead, {
+        title: 'My Files',
+        lead: 'The directories you share with your friends.',
+        actions: m(
+          'button.my-files__configure-shares.is-primary',
           {
             onclick: () => (showShareManager = true),
             title: 'Configure shared directories',
             'aria-label': 'Configure shared directories',
           },
-          [m('i.fas.fa-folder-plus'), m('span', 'Configure shared directories')]
+          [icon('folder-plus'), m('span', 'Configure shared directories')]
         ),
-      ]),
+      }),
       m('.widget__body', [
         m(
           util.MyFilesTable,
@@ -151,7 +152,7 @@ const Layout = () => {
             m(
               'button.red.close-btn',
               { onclick: () => (showShareManager = false) },
-              m('i.fas.fa-times')
+              icon('times')
             )
           )
         ),

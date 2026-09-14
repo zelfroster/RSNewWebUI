@@ -3,7 +3,10 @@ const rs = require('rswebui');
 const util = require('forums/forums_util');
 const peopleUtil = require('people/people_util');
 const chatEmoji = require('chat/chat_emoji');
+const icon = require('icon');
 const { loadPostContent, getTimestampValue, formatTimestamp } = require('./forums_util');
+const toast = require('toast');
+const widget = require('widgets');
 const CIRCLE_PUBLIC = 1;
 const CIRCLE_EXTERNAL = 2;
 
@@ -38,10 +41,6 @@ function createforum() {
         .filter((item) => !query || `${item.mGroupName} ${item.mGroupId}`.toLowerCase().includes(query))
         .sort((a, b) => (a.mGroupName || '').localeCompare(b.mGroupName || ''));
       return m('.widget.create-forum-form', [
-        m('.create-forum-form__heading', [
-          m('h3', 'Create Forum'),
-          m('p', 'Set up the forum and choose its publishing permissions.'),
-        ]),
         m('input.create-forum-form__title[type=text][placeholder=Forum title]', {
           oninput: (e) => (title = e.target.value),
         }),
@@ -98,13 +97,13 @@ function createforum() {
               m('option[value=all]', 'All identities'),
               m('option[value=contacts]', 'My contacts'),
             ]),
-            m('.create-forum-form__search', [
-              m('i.fas.fa-search'),
-              m('input[id=forum-moderator-search][type=search][placeholder=Search identities]', {
-                value: moderatorSearch,
-                oninput: (e) => (moderatorSearch = e.target.value),
-              }),
-            ]),
+            m(widget.SearchField, {
+              id: 'forum-moderator-search',
+              placeholder: 'Search identities',
+              value: moderatorSearch,
+              oninput: (e) => (moderatorSearch = e.target.value),
+              onclear: () => (moderatorSearch = ''),
+            }),
             m('.create-forum-form__moderator-list', identities.length
               ? identities.map((item) => m('label.create-forum-form__moderator', [
               m('input[type=checkbox]', {
@@ -131,7 +130,7 @@ function createforum() {
           oninput: (e) => (body = e.target.value),
           value: body,
         }),
-        m('button.create-forum-form__submit',
+        m('button.create-forum-form__submit.is-primary',
           {
             onclick: async () => {
               const res = await rs.rsJsonApiRequest('/rsgxsforums/createForumV2', {
@@ -148,16 +147,10 @@ function createforum() {
                 m.redraw();
               }
               res.body.retval === false
-                ? util.popupmessage([m('h3', 'Error'), m('hr'), m('p', res.body.errorMessage)])
-                : util.popupmessage([
-                  m('h3', 'Success'),
-                  m('hr'),
-                  m('p', 'Forum created successfully'),
-                ]);
+                ? toast.error(res.body.errorMessage)
+                : toast.success('Forum created successfully');
             },
-          },
-          'Create'
-        ),
+          }, [icon('plus'), 'Create']),
       ]);
     },
   };
@@ -168,7 +161,6 @@ const AddThread = () => {
   let body = '';
   let identity;
   let showEmojiPicker = false;
-  let emojiCategory = 'Smileys';
   let showFilePanel = false;
   let isFullscreen = false;
   let filePath = '';
@@ -323,23 +315,15 @@ const AddThread = () => {
       const bodySize = byteLength(mBody);
 
       return m('.widget.forum-thread-composer', [
-        m('.forum-thread-composer__heading', [
-          m('.forum-thread-composer__heading-copy', [
-            m('h3', (vnode.attrs.parent_thread !== '') > 0 ? 'Add Reply' : 'Create New Thread'),
-            m('p', (vnode.attrs.parent_thread !== '') > 0
-              ? 'Write a reply and optionally include images or files.'
-              : 'Start a discussion and optionally include images or files.'),
-          ]),
-          m('button.forum-thread-composer__fullscreen[type=button]', {
-            title: isFullscreen ? 'Restore default size' : 'Fullscreen',
-            'aria-label': isFullscreen ? 'Restore default size' : 'Fullscreen',
-            onclick: (e) => {
-              isFullscreen = !isFullscreen;
-              const modal = e.currentTarget.closest('.modal-content');
-              if (modal) modal.classList.toggle('is-fullscreen', isFullscreen);
-            },
-          }, m(`i.fas.${isFullscreen ? 'fa-compress' : 'fa-expand'}`)),
-        ]),
+        m('button.forum-thread-composer__fullscreen.is-glyph[type=button]', {
+          title: isFullscreen ? 'Restore default size' : 'Fullscreen',
+          'aria-label': isFullscreen ? 'Restore default size' : 'Fullscreen',
+          onclick: (e) => {
+            isFullscreen = !isFullscreen;
+            const modal = e.currentTarget.closest('.modal-content');
+            if (modal) modal.classList.toggle('is-fullscreen', isFullscreen);
+          },
+        }, icon(isFullscreen ? 'compress' : 'expand')),
         (vnode.attrs.parent_thread !== '') > 0
           ? m('.forum-thread-composer__reply', [m('b', 'Replying to: '), vnode.attrs.parent_thread])
           : '',
@@ -389,27 +373,25 @@ const AddThread = () => {
             m('button.forum-thread-composer__tool[type=button][title=Attach file][aria-label=Attach file]', {
               class: showFilePanel ? 'active' : '',
               onclick: () => (showFilePanel = !showFilePanel),
-            }, m('i.fas.fa-paperclip')),
-            m('button.forum-thread-composer__tool[type=button][title=Insert emoji][aria-label=Insert emoji]', {
-              class: showEmojiPicker ? 'active' : '',
-              onclick: () => (showEmojiPicker = !showEmojiPicker),
-            }, m('i.fas.fa-smile')),
+            }, icon('paperclip')),
             m('label.forum-thread-composer__tool[for=forum-thread-images][title=Attach images][aria-label=Attach images]',
-              m('i.fas.fa-image')
+              icon('image')
             ),
-            showEmojiPicker && m('.forum-thread-composer__emoji-picker', [
-              m('.forum-thread-composer__emoji-categories', chatEmoji.EMOJI_CATEGORIES.map((category) =>
-                m('button[type=button]', {
-                  class: category === emojiCategory ? 'active' : '',
-                  title: category,
-                  onclick: () => (emojiCategory = category),
-                }, chatEmoji.EMOJI_ICONS[category])
-              )),
-              m('.forum-thread-composer__emoji-grid',
-                (chatEmoji.EMOJI_DATA[emojiCategory] || []).map((emoji) =>
-                  m('button[type=button]', { onclick: () => insertEmoji(emoji) }, emoji)
-                )
-              ),
+            //  The shared picker. This composer had its own category row and
+            //  grid, with no search at all.
+            m('.forum-thread-composer__emoji', [
+              m('button.forum-thread-composer__tool[type=button][title=Insert emoji][aria-label=Insert emoji]', {
+                class: showEmojiPicker ? 'active' : '',
+                'aria-pressed': String(showEmojiPicker),
+                onclick: (e) => {
+                  e.stopPropagation();
+                  showEmojiPicker = !showEmojiPicker;
+                },
+              }, icon('smile')),
+              showEmojiPicker && m(chatEmoji.EmojiPicker, {
+                onSelect: insertEmoji,
+                onClose: () => { showEmojiPicker = false; },
+              }),
             ]),
           ]),
           showFilePanel && m('.forum-thread-composer__file-panel', [
@@ -423,11 +405,11 @@ const AddThread = () => {
                   fileError = '';
                 },
               }),
-              m('label[for=forum-thread-files][title=Browse for file]', m('i.fas.fa-folder-open')),
+              m('label[for=forum-thread-files][title=Browse for file]', icon('folder-open')),
               m('button[type=button]', {
                 disabled: fileHashing || !filePath.trim() || filePathNeedsPrefix,
                 onclick: attachFile,
-              }, fileHashing ? [m('i.fas.fa-spinner.fa-spin'), ' Hashing...'] : 'Attach'),
+              }, fileHashing ? [icon('spinner', { spin: true }), ' Hashing...'] : 'Attach'),
             ]),
             filePathNeedsPrefix && m('small', [
               'The browser only returned the filename. Add its complete folder path before attaching.',
@@ -437,24 +419,24 @@ const AddThread = () => {
           inlineImages.length > 0 && m('.forum-thread-composer__inline-images',
             inlineImages.map((file, index) => m('.forum-thread-composer__inline-image', [
               m('img', { src: file.dataUrl, alt: file.name }),
-              m('button[type=button][title=Remove inline image][aria-label=Remove inline image]', {
+              m('button.is-icon[type=button][title=Remove inline image][aria-label=Remove inline image]', {
                 onclick: () => inlineImages.splice(index, 1),
-              }, m('i.fas.fa-times')),
+              }, icon('times')),
             ]))
           ),
         ]),
         attachments.length > 0 && m('.forum-thread-composer__attachments', [
           m('.forum-thread-composer__attachments-heading', [
-            m('i.fas.fa-paperclip'),
+            icon('paperclip'),
             m('span', `${attachments.length} attachment${attachments.length === 1 ? '' : 's'}`),
           ]),
           m('.forum-thread-composer__attachment-list', attachments.map((file, index) =>
             m('.forum-thread-composer__attachment', [
-              m('i.fas.fa-file-alt'),
+              icon('file-alt'),
               m('span', [m('b', file.name), m('small', formatSize(file.size))]),
-              m('button[type=button][title=Remove attachment][aria-label=Remove attachment]', {
+              m('button.is-icon[type=button][title=Remove attachment][aria-label=Remove attachment]', {
                 onclick: () => attachments.splice(index, 1),
-              }, m('i.fas.fa-times')),
+              }, icon('times')),
             ])
           )),
         ]),
@@ -492,12 +474,8 @@ const AddThread = () => {
                   });
 
               res.body.retval === false
-                ? util.popupmessage([m('h3', 'Error'), m('hr'), m('p', res.body.errorMessage)])
-                : util.popupmessage([
-                  m('h3', 'Success'),
-                  m('hr'),
-                  m('p', 'Thread added successfully'),
-                ]);
+                ? toast.error(res.body.errorMessage)
+                : toast.success('Thread added successfully');
               util.updatedisplayforums(vnode.attrs.forumId);
               m.redraw();
             },
@@ -541,7 +519,7 @@ const ThreadView = () => {
                 mGroupId: forumId,
               }),
             },
-            m('i.fas.fa-arrow-left')
+            icon('arrow-left')
           ),
           m('h3', 'Loading...'),
         ]);
@@ -559,24 +537,26 @@ const ThreadView = () => {
               mGroupId: forumId,
             }),
           },
-          m('i.fas.fa-arrow-left')
+          icon('arrow-left')
         ),
-        m('div.post-header', { style: { margin: '10px 0' } }, [
-          m('div.date', { style: { color: '#888', fontSize: '0.9em' } }, formatTimestamp(meta.mPublishTs)),
-          m('h4.title', { style: { margin: '5px 0', fontWeight: 'bold' } }, meta.mMsgName),
-          m('div.author', { style: { fontStyle: 'italic', fontSize: '1em' } }, rs.userList.username(meta.mAuthorId)),
+        m('div.post-header', [
+          m('div.date', formatTimestamp(meta.mPublishTs)),
+          m('h4.title', meta.mMsgName),
+          m('div.author', rs.userList.username(meta.mAuthorId)),
         ]),
         m('hr'),
-        m('div.actions', { style: { marginBottom: '15px' } }, [
+        m('div.actions', [
           m('button', {
-            style: { marginRight: '10px' },
             onclick: () => util.popupmessage(m(AddThread, {
               parent_thread: meta.mMsgName,
               forumId,
               authorId: ownId,
               parentId: msgId,
-            }), 'create-forum-thread-modal')
-          }, 'Reply'),
+            }), 'create-forum-thread-modal', {
+              title: 'Add Reply',
+              lead: 'Write a reply and optionally include images or files.',
+            })
+          }, [icon('reply'), 'Reply']),
           m('button', {
             onclick: async () => {
               const res = await rs.rsJsonApiRequest('/rsgxsforums/markRead', {
@@ -588,17 +568,9 @@ const ThreadView = () => {
                 m.redraw();
               }
             }
-          }, unread ? 'Mark Read' : 'Mark Unread'),
+          }, [icon('envelope-open'), unread ? 'Mark Read' : 'Mark Unread']),
         ]),
         m('div.forum-post-content', {
-          style: {
-            width: '100%',
-            backgroundColor: '#f9f9f9',
-            padding: '15px',
-            borderRadius: '5px',
-            whiteSpace: 'pre-wrap', // Preserve line breaks
-            wordBreak: 'break-word',
-          }
         }, [
           threadStruct.thread.mMsg !== null
             ? m.trust(threadStruct.thread.mMsg)
@@ -677,16 +649,17 @@ const ForumView = () => {
                   tab: m.route.param().tab || 'Subscribed',
                 }),
             },
-            m('i.fas.fa-arrow-left')
+            icon('arrow-left')
           ),
-          m('.forum-mobile-search', [
-            m('input[type=search][placeholder=Search threads...]', {
-              value: threadSearch,
-              oninput: (e) => {
-                threadSearch = e.target.value;
-              },
-            }),
-          ]),
+          m(widget.SearchField, {
+            class: 'forum-mobile-search',
+            placeholder: 'Search threads',
+            value: threadSearch,
+            oninput: (e) => {
+              threadSearch = e.target.value;
+            },
+            onclear: () => (threadSearch = ''),
+          }),
           m('details.forum-mobile-actions', {
             onkeydown: (event) => {
               if (event.key === 'Escape') {
@@ -698,15 +671,15 @@ const ForumView = () => {
               if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
             },
           }, [
-            m('summary[aria-label=Forum actions][title=Forum actions]', m('i.fas.fa-ellipsis-v')),
-            m('.forum-mobile-actions__items', m('button[type=button]', {
+            m('summary[aria-label=Forum actions][title=Forum actions]', icon('ellipsis-v')),
+            m('.forum-mobile-actions__items', m('button.is-danger[type=button]', {
               onclick: (event) => {
                 const menu = event.currentTarget.closest('details');
                 menu.open = false;
                 menu.querySelector('summary').focus();
                 return toggleSubscription();
               },
-            }, fsubscribed ? 'Unsubscribe' : 'Subscribe')),
+            }, [icon('bookmark'), fsubscribed ? 'Unsubscribe' : 'Subscribe'])),
           ]),
         ]),
 
@@ -723,26 +696,27 @@ const ForumView = () => {
                     authorId: ownId,
                     parentId: '',
                   }),
-                  'create-forum-thread-modal'
+                  'create-forum-thread-modal',
+                  {
+                    title: 'Create New Thread',
+                    lead: 'Start a discussion and optionally include images or files.',
+                  }
                 );
               },
             },
-            m('i.fas.fa-pencil-alt')
+            icon('pencil-alt')
           ),
-          m(
-            'button.forum-subscription-button',
+          m('button.forum-subscription-button.is-primary',
             {
               class: fsubscribed ? 'forum-subscription--subscribed' : '',
               onclick: toggleSubscription,
-            },
-            fsubscribed ? 'Subscribed' : 'Subscribe'
-          ),
+            }, [icon('bookmark'), fsubscribed ? 'Subscribed' : 'Subscribe']),
         ]),
         m('.media-item', [
           m('.media-item__details', [
             m(
               '.forum-detail-default-thumbnail[role=img][aria-label=Default forum thumbnail]',
-              m('i.fas.fa-bullhorn')
+              icon('bullhorn')
             ),
             m('.media-item__details-info', [
               m('div', [m('b', 'Threads: '), m('span', allPosts.length)]),
@@ -774,11 +748,15 @@ const ForumView = () => {
                       authorId: ownId,
                       parentId: '',
                     }),
-                    'create-forum-thread-modal'
+                    'create-forum-thread-modal',
+                    {
+                      title: 'Create New Thread',
+                      lead: 'Start a discussion and optionally include images or files.',
+                    }
                   );
                 },
               },
-              [m('i.fas.fa-pencil-alt'), m('span', 'New Thread')]
+              [icon('pencil-alt'), m('span', 'New Thread')]
             ),
           ]),
           m(
@@ -786,9 +764,8 @@ const ForumView = () => {
             m(
               'tbody',
               filteredPosts.length === 0
-                ? m('tr', m('td.forum-threads__empty', {
-                  style: { textAlign: 'center', padding: '1.25rem', color: '#64748b', fontSize: '.9rem' },
-                }, query ? 'No threads matching search.' : 'No threads in this forum yet.'))
+                ? m('tr', m('td.forum-threads__empty',
+                  query ? 'No threads matching search.' : 'No threads in this forum yet.'))
                 : filteredPosts
                   .sort((a, b) => getTimestampValue(b.mPublishTs) - getTimestampValue(a.mPublishTs))
                   .map((thread) =>

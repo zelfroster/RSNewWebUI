@@ -2,6 +2,7 @@ const m = require('mithril');
 const rs = require('rswebui');
 const Data = require('network/network_data');
 const peopleUtil = require('people/people_util');
+const toast = require('toast');
 
 const State = {
   searchString: '',
@@ -348,12 +349,14 @@ function syncFilter(tab) {
   }
 }
 
+//  The tunnel light, in the product's own status colours rather than the
+//  Tailwind palette these were written in.
 function getStatusColor(status) {
   switch (status) {
-    case 1: return '#eab308'; // Yellow
-    case 2: return '#22c55e'; // Green
-    case 3: return '#ef4444'; // Red
-    default: return '#94a3b8'; // Grey
+    case 1: return 'var(--warn-ink)';
+    case 2: return 'var(--up-ink)';
+    case 3: return 'var(--down-ink)';
+    default: return 'var(--ink-faint)';
   }
 }
 
@@ -723,7 +726,9 @@ function sendDistantChatMessage() {
         //  unlimited, for distant chat, and the core slices anything longer
         //  than 15000 characters and reassembles it on the other side. Blaming
         //  the payload was a guess, and a wrong one.
-        alert('Failed to send the message. The tunnel may have closed -- check the connection state above.');
+        toast.error('Message not sent', {
+          description: 'The tunnel may have closed. Check the connection state above.',
+        });
         // Restore only the saved conversation's draft, preserving newer typing.
         if (!session.inputMsg) session.inputMsg = text;
         if (isCurrentChat() && !State.chatInputMsg) State.chatInputMsg = session.inputMsg;

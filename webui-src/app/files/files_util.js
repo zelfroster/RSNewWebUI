@@ -1,6 +1,8 @@
 const m = require('mithril');
 const rs = require('rswebui');
 const widget = require('widgets');
+const icon = require('icon');
+const toast = require('toast');
 
 const RS_FILE_CTRL_PAUSE = 0x00000100;
 const RS_FILE_CTRL_START = 0x00000200;
@@ -190,20 +192,24 @@ const File = () => {
   };
   function fileCancel(hash) {
     rs.rsJsonApiRequest('/rsFiles/FileCancel', { hash }).then((res) =>
-      widget.popupMessage(m('p', `Download Cancel ${res ? 'Successful' : 'Failed'}`))
+      toast.info(`Download Cancel ${res ? 'Successful' : 'Failed'}`)
     );
   }
   function cancelFileDownload(hash) {
-    widget.popupMessage([
-      m('p', 'Are you sure you want to cancel download?'),
-      m('button', { onclick: () => fileCancel(hash) }, 'Cancel'),
-    ]);
+    widget.confirmMessage({
+      title: 'Cancel download',
+      message: 'The partial file will be discarded.',
+      cancelLabel: 'Keep downloading',
+      confirmLabel: 'Cancel download',
+      danger: true,
+      onConfirm: () => fileCancel(hash),
+    });
   }
   function actionButton(file, action) {
     return m(
-      'button',
+      'button.is-icon',
       { title: action, onclick: () => fileAction(file.hash, action) },
-      m(`i.fas.fa-${action === 'resume' ? 'play' : action}`)
+      icon(action === 'resume' ? 'play' : action)
     );
   }
 
@@ -244,32 +250,32 @@ const File = () => {
           m('.file-view__body-details', [
             m('.file-view__body-details-stat', [
               m('span', { title: 'downloaded size' }, [
-                m('i.fas.fa-download'),
+                icon('download'),
                 rs.formatBytes(transferred),
               ]),
               m('span', { title: 'total size' }, [
-                m('i.fas.fa-file'),
+                icon('file'),
                 rs.formatBytes(info.size.xint64),
               ]),
               m('span', { title: 'speed' }, [
-                m(`i.fas.fa-arrow-circle-${direction}`),
+                icon(`arrow-circle-${direction}`),
                 `${rs.formatBytes(info.tfRate * 1024)}/s`,
               ]),
               direction === 'down' &&
               m('span', { title: 'time remaining' }, [
-                m('i.fas.fa-clock'),
+                icon('clock'),
                 calcRemainingTime(info.size.xint64 - transferred, info.tfRate),
               ]),
-              m('span', { title: 'peers' }, [m('i.fas.fa-users'), info.peers.length]),
+              m('span', { title: 'peers' }, [icon('users'), info.peers.length]),
             ]),
             m(
               '.file-view__body-details-action',
               info.downloadStatus !== FT_STATE_COMPLETE && [
                 actionButton(info, info.downloadStatus === FT_STATE_PAUSED ? 'resume' : 'pause'),
                 m(
-                  'button.red',
-                  { title: 'cancel', onclick: () => cancelFileDownload(info.hash) },
-                  m('i.fas.fa-times')
+                  'button.red.is-icon',
+                  { title: 'Cancel download', onclick: () => cancelFileDownload(info.hash) },
+                  icon('times')
                 ),
               ]
             ),
@@ -284,7 +290,8 @@ const SearchBar = () => {
   let searchString = '';
   return {
     view: (v) =>
-      m('input[type=text][placeholder=Search].searchbar', {
+      m(widget.SearchField, {
+        placeholder: 'Search',
         value: searchString,
         oninput: (e) => {
           searchString = e.target.value.toLowerCase();
@@ -324,7 +331,7 @@ const FriendsFilesTable = () => {
           m('th', ''),
           m('th', 'Friends Directories'),
           m('th', 'Size'),
-          m('th', m('i.fas.fa-download')),
+          m('th', icon('download')),
         ]),
         v.children,
       ]),
