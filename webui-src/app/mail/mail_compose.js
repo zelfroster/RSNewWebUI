@@ -534,11 +534,15 @@ const Layout = () => {
                   m('ul.recipients__input-list[autocomplete=off]', [
                     Data.recipients.to.inputList.length > 0
                       ? Data.recipients.to.inputList.map((item) =>
+                          //  The key sits on the li: keyed children under an
+                          //  unkeyed row were recreated -- observer and all --
+                          //  at every keystroke that shifted the filtered list.
                           m('li', {
+                            key: item.mGroupId,
                             onclick: () => handleClick(item, 'to'),
                             onmouseenter: (event) => showRecipientTooltip(item, event.currentTarget),
                             onmouseleave: () => (hoveredRecipient = null),
-                          }, m(RecipientResult, { key: item.mGroupId, item }))
+                          }, m(RecipientResult, { item }))
                         )
                       : m('li', 'No Item'),
                   ]),
@@ -597,11 +601,12 @@ const Layout = () => {
                             m(
                               'li',
                               {
+                                key: item.mGroupId,
                                 onclick: () => handleClick(item, recipientType),
                                 onmouseenter: (event) => showRecipientTooltip(item, event.currentTarget),
                                 onmouseleave: () => (hoveredRecipient = null),
                               },
-                              m(RecipientResult, { key: item.mGroupId, item })
+                              m(RecipientResult, { item })
                             )
                           )
                         : m('li', 'No Item'),
