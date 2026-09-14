@@ -92,6 +92,7 @@ function insertEmojiIntoTextarea(emoji, onSelect) {
   textarea.selectionStart = newPos;
   textarea.selectionEnd = newPos;
   textarea.focus();
+  textarea.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 const EmojiPicker = () => ({

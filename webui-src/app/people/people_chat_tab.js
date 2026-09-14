@@ -7,15 +7,25 @@ const {
   getStatusTooltip,
   initializeDistantChat,
   sendDistantChatMessage,
-  stopStatusPolling,
-  loadAllHistoryForSelectedPeer,
+  leaveDistantChat,
+  loadOlderChatHistory,
+  setChatDraft,
+  switchChatIdentity,
+  getDistantChatSession,
 } = require('people/people_state');
-const { renderChatMessage } = require('chat/chat_state');
+const { startAttachHash, stopAttachHash } = require('people/people_attach');
+const { renderChatMessage, autoResizeTextarea, openChatImageViewer } = require('chat/chat_state');
 const chatEmoji = require('chat/chat_emoji');
 const peopleUtil = require('people/people_util');
 const HistoryBrowserModal = require('people/people_history');
 
-// Mirroring C++ Distant Chat packet size limit (200KB)
+//  Distant chat has no size limit of its own -- getMaxMessageSecuritySize()
+//  answers 0 for it and the core slices anything past 15000 characters -- but a
+//  photo straight from a phone is several megabytes of base64 crawling through a
+//  turtle tunnel. So the picture is scaled into a 800x600 box and its quality
+//  stepped down until it fits in a couple of hundred kilobytes.
+const MAX_IMAGE_CHARS = 200000;
+
 function formatChatImage(file, callback) {
   if (!file) return;
   const reader = new FileReader();
@@ -43,26 +53,57 @@ function formatChatImage(file, callback) {
       // Dynamically step down JPEG quality until base64 string is under 190,000 characters (190KB)
       let quality = 0.85;
       let dataUrl = canvas.toDataURL('image/jpeg', quality);
-      while (dataUrl.length > 190000 && quality > 0.20) {
+      while (dataUrl.length > MAX_IMAGE_CHARS * 0.95 && quality > 0.20) {
         quality -= 0.10;
         dataUrl = canvas.toDataURL('image/jpeg', quality);
       }
 
-      if (dataUrl.length <= 200000) {
-        callback(`<img src="${dataUrl}" />`);
+      if (dataUrl.length <= MAX_IMAGE_CHARS) {
+        callback(`<img src="${dataUrl}" />`, dataUrl);
       } else {
-        alert('Image file is too large to send over Distant Chat 200KB packet size limit.');
-        callback(null);
+        alert('That picture stays too heavy once compressed to be worth sending over a distant chat tunnel.');
+        callback(null, null);
       }
     };
-    img.onerror = () => callback(null);
+    img.onerror = () => callback(null, null);
     img.src = evt.target.result;
   };
   reader.readAsDataURL(file);
 }
 
 const ChatTab = () => {
+  let showAttachmentMenu = false;
+
+  function onDocClick(e) {
+    if (showAttachmentMenu && !e.target.closest('.mobile-chat-attachment')) {
+      showAttachmentMenu = false;
+      m.redraw();
+    }
+  }
+
+  function attachFileLink() {
+    if (State.isHashing) return;
+    //  The path is read by the RetroShare node, not by the browser, so a file
+    //  picker would name something the core cannot open.
+    const path = prompt('Path of the file to share, as seen by the RetroShare node:');
+    if (path && path.trim()) startAttachHash(path);
+  }
+
+  function attachImage(file) {
+    if (!file) return;
+    formatChatImage(file, (imgTag, dataUrl) => {
+      if (imgTag && dataUrl) {
+        State.attachedImage = { imgTag, dataUrl, name: file.name || 'Image' };
+        const session = getDistantChatSession(State.selectedId);
+        if (session) session.attachedImage = State.attachedImage;
+        m.redraw();
+      }
+    });
+  }
+
   return {
+    oncreate: () => document.addEventListener('click', onDocClick, true),
+    onremove: () => document.removeEventListener('click', onDocClick, true),
     view: () => {
       fetchIdDetails(State.selectedId);
       const details = State.selectedId ? State.gxsIdToDetailsMap[State.selectedId] : null;
@@ -71,31 +112,35 @@ const ChatTab = () => {
       const name = details.mNickname || details.mGroupName || 'Unknown';
 
       if (State.ownGxsIds.length === 0) {
-        return m('.chat-warning', [
+        return m('.network-chat-view', m('.chat-warning', [
           m('i.fas.fa-exclamation-triangle'),
           m('h4', 'No Identities Found'),
           m('p', 'You need to create a GXS identity in the "My Identities" tab before you can start distant chats.'),
-        ]);
+        ]));
       }
 
       if (State.chatDisconnected) {
-        return m('.chat-warning', [
+        return m('.network-chat-view', m('.chat-warning', [
           m('i.fas.fa-unlink', { style: 'font-size: 2rem; color: #ef4444; margin-bottom: 1rem;' }),
           m('h4', 'Conversation Ended'),
-          m('p', 'You have closed the distant chat tunnel. Click below to reconnect.'),
+          m('p', State.chatCloseFoundNothing
+            ? 'The tunnel was already gone: the core had no connection left to close. Click below to open a new one.'
+            : State.chatEndedByPoll
+              ? 'The tunnel went away: closed by your contact, or dropped by the core. Click below to open a new one.'
+              : 'You have closed the distant chat tunnel. Click below to reconnect.'),
           m('button.blue', {
             style: 'margin-top: 1rem; padding: 0.5rem 1.5rem; border-radius: 0.375rem; border: none; font-weight: 600; cursor: pointer;',
             onclick: () => initializeDistantChat(),
           }, 'Reconnect'),
-        ]);
+        ]));
       }
 
       if (!State.chatPid) {
-        return m('.chat-warning', [
+        return m('.network-chat-view', m('.chat-warning', [
           m('i.fas.fa-spinner.fa-spin'),
           m('h4', 'Connecting...'),
           m('p', 'Initiating distant chat tunnel to the peer identity...'),
-        ]);
+        ]));
       }
 
       const canTalk = State.distantChatStatus && State.distantChatStatus.status === 2;
@@ -105,7 +150,7 @@ const ChatTab = () => {
           style: 'padding: 0.5rem 1rem; background-color: #ffffff; border-bottom: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem;',
         }, [
           m('.chat-tunnel-status', { style: 'display: flex; align-items: center; gap: 0.5rem;' }, [
-            m('span', { style: 'color: #64748b; font-weight: 500;' }, 'Distant Chat Tunnel'),
+            m('span.tunnel-label', { style: 'color: #64748b; font-weight: 500;' }, 'Distant Chat Tunnel'),
             m('i.fas.fa-circle', {
               style: {
                 color: getStatusColor(State.distantChatStatus ? State.distantChatStatus.status : 0),
@@ -117,7 +162,7 @@ const ChatTab = () => {
           ]),
           m('.chat-actions', { style: 'display: flex; align-items: center; gap: 0.75rem;' }, [
             m('.select-own-profile', { style: 'display: flex; align-items: center; gap: 0.5rem;' }, [
-              m('span', { style: 'color: #64748b;' }, 'Chatting as:'),
+              m('span.chatting-as-label', { style: 'color: #64748b;' }, 'Chatting as:'),
               (() => {
                 const ownId = State.selectedOwnGxsIdForChat;
                 if (ownId) fetchIdDetails(ownId);
@@ -131,10 +176,7 @@ const ChatTab = () => {
                   m('select', {
                     style: 'padding: 0.25rem 0.5rem; border-radius: 0.25rem; border: 1px solid #cbd5e1; outline: none; background: #f8fafc; font-weight: 600;',
                     value: ownId,
-                    onchange: (e) => {
-                      State.selectedOwnGxsIdForChat = e.target.value;
-                      initializeDistantChat(true);
-                    },
+                    onchange: (e) => switchChatIdentity(e.target.value),
                   }, State.ownGxsIds.map((id) => m('option', { value: id }, rs.userList.username(id)))),
                 ]);
               })(),
@@ -142,10 +184,10 @@ const ChatTab = () => {
             m('button.blue.history-btn', {
               style: 'padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.35rem; border: none; cursor: pointer; background-color: #3b82f6; color: #ffffff; font-weight: 600;',
               title: 'View all past chat history with this contact',
+              //  The modal loads the history when it opens; asking here too
+              //  ran the whole "every message ever" query twice.
               onclick: () => {
                 State.showHistoryModal = true;
-                State.historySearchQuery = '';
-                loadAllHistoryForSelectedPeer();
               },
             }, [
               m('i.fas.fa-history', { style: 'color: #ffffff;' }),
@@ -161,17 +203,11 @@ const ChatTab = () => {
                       pid: State.chatPid,
                     },
                     (data, success) => {
-                      if (success) {
-                        if (State.selectedId && State.activeDistantChats[State.selectedId]) {
-                          delete State.activeDistantChats[State.selectedId];
-                        }
-                        State.chatPid = null;
-                        State.chatMessages = [];
-                        State.distantChatStatus = null;
-                        State.chatDisconnected = true;
-                        stopStatusPolling();
-                        m.redraw();
-                      }
+                      //  `success` is the HTTP status, not the answer: the core
+                      //  says in retval whether it had anything to close. Taking
+                      //  200 for a closed tunnel is how this button could report
+                      //  a conversation as ended while the tunnel lived on.
+                      leaveDistantChat(Boolean(success && data && data.retval));
                     }
                   );
                 }
@@ -184,7 +220,23 @@ const ChatTab = () => {
           ]),
         ]),
 
-        m('.chat-messages', [
+        m('.chat-messages', {
+          //  Near the top: ask for an older slice. It is inserted above what is
+          //  on screen, so its height is given back to scrollTop and the
+          //  reader does not move (same as the chat rooms).
+          onscroll: (e) => {
+            const element = e.target;
+            if (element.scrollTop > 120) return;
+            const previousHeight = element.scrollHeight;
+            const previousTop = element.scrollTop;
+            loadOlderChatHistory(() => {
+              requestAnimationFrame(() => {
+                const pane = document.querySelector('.chat-messages');
+                if (pane) pane.scrollTop = previousTop + (pane.scrollHeight - previousHeight);
+              });
+            });
+          },
+        }, [
           State.chatMessages.length === 0
             ? m('.chat-warning', [
                 m('i.fas.fa-comments'),
@@ -224,20 +276,94 @@ const ChatTab = () => {
               }),
         ]),
 
-        m('.chat-input-area', { style: 'display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; background: #ffffff; border-top: 1px solid #cbd5e1;' }, [
-          m('button.chat-hub-action-btn', {
+        //  Hashing has no deadline and the core never reports a failure, so
+        //  the wait must be visible and must always have a way out.
+        (State.isHashing || State.attachError) && m('.chat-attach-status', {
+          style: 'display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-top: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.85rem; color: #475569;',
+        }, State.isHashing
+          ? [
+              m('i.fas.fa-spinner.fa-spin', { style: 'color: #3b82f6;' }),
+              m('span', { style: 'flex: 1; word-break: break-all;' }, `Hashing ${State.attachPath}…`),
+              m('button.btn.red', {
+                style: 'padding: 0.2rem 0.6rem; border-radius: 0.25rem; border: none; cursor: pointer; background-color: #ef4444; color: #ffffff;',
+                onclick: () => stopAttachHash(),
+              }, 'Stop'),
+            ]
+          : [
+              m('i.fas.fa-exclamation-triangle', { style: 'color: #ef4444;' }),
+              m('span', { style: 'flex: 1;' }, State.attachError),
+              m('button.btn', {
+                style: 'padding: 0.2rem 0.6rem; border-radius: 0.25rem; border: 1px solid #cbd5e1; cursor: pointer; background: #ffffff;',
+                onclick: () => { State.attachError = ''; },
+              }, 'Dismiss'),
+            ]),
+
+        State.attachedImage && m('.chat-attachment-preview', [
+          m('.chat-attachment-preview__item', [
+            m('img.chat-attachment-preview__thumb', {
+              src: State.attachedImage.dataUrl,
+              alt: 'Preview',
+              title: 'Click to view full image',
+              onclick: () => openChatImageViewer(State.attachedImage.dataUrl),
+            }),
+            m('button.chat-attachment-preview__remove', {
+              type: 'button',
+              title: 'Remove image',
+              onclick: () => {
+                State.attachedImage = null;
+                const session = getDistantChatSession(State.selectedId);
+                if (session) session.attachedImage = null;
+              },
+            }, m('i.fas.fa-times')),
+          ]),
+          m('.chat-attachment-preview__info', [
+            m('span.chat-attachment-preview__name', State.attachedImage.name || 'Image attached'),
+            m('span.chat-attachment-preview__hint', 'Will be sent with your message'),
+          ]),
+        ]),
+
+        m('.chat-input-area', { style: 'display: flex; align-items: flex-end; gap: 0.5rem; padding: 0.75rem; background: #ffffff; border-top: 1px solid #cbd5e1;' }, [
+          m('button.chat-hub-action-btn.desktop-chat-attachment', {
             disabled: !canTalk,
             style: !canTalk ? 'opacity: 0.5; cursor: not-allowed;' : '',
             title: 'Attach file link',
-            onclick: () => {
-              const path = prompt('Enter file path to attach as Retroshare link:');
-              if (path && path.trim()) {
-                const val = State.chatInputMsg || '';
-                State.chatInputMsg = val ? val + '\n' + path.trim() : path.trim();
-                m.redraw();
-              }
-            }
+            onclick: attachFileLink,
           }, m('i.fas.fa-paperclip')),
+
+          m('.mobile-chat-attachment', [
+            m('button.chat-hub-action-btn', {
+              disabled: !canTalk,
+              style: !canTalk ? 'opacity: 0.5; cursor: not-allowed;' : '',
+              title: 'Add attachment',
+              onclick: (e) => {
+                e.stopPropagation();
+                showAttachmentMenu = !showAttachmentMenu;
+                State.showEmojiPicker = false;
+              },
+            }, m('i.fas.fa-paperclip')),
+            showAttachmentMenu && m('.mobile-chat-attachment__menu', [
+              m('button.mobile-chat-attachment__option', {
+                type: 'button',
+                onclick: () => {
+                  showAttachmentMenu = false;
+                  attachFileLink();
+                },
+              }, [m('i.fas.fa-file'), ' File']),
+              m('label.mobile-chat-attachment__option', [
+                m('i.fas.fa-image'),
+                ' Picture',
+                m('input[type=file][accept=image/*]', {
+                  style: 'display: none;',
+                  disabled: !canTalk,
+                  onchange: (e) => {
+                    attachImage(e.target.files && e.target.files[0]);
+                    showAttachmentMenu = false;
+                    e.target.value = '';
+                  },
+                }),
+              ]),
+            ]),
+          ]),
 
           m('.emoji-picker-wrapper', { style: 'position: relative;' }, [
             m('button.chat-hub-action-btn', {
@@ -251,14 +377,14 @@ const ChatTab = () => {
             }, m('i.fas.fa-smile')),
             State.showEmojiPicker && m(chatEmoji.EmojiPicker, {
               onSelect: (emoji) => {
-                State.chatInputMsg = (State.chatInputMsg || '') + emoji;
+                setChatDraft((State.chatInputMsg || '') + emoji);
                 State.showEmojiPicker = false;
                 m.redraw();
               }
             }),
           ]),
 
-          m('label.chat-hub-action-btn', {
+          m('label.chat-hub-action-btn.desktop-chat-attachment', {
             title: 'Send image',
             style: `cursor: ${canTalk ? 'pointer' : 'not-allowed'}; opacity: ${canTalk ? 1 : 0.5};`,
           }, [
@@ -268,25 +394,25 @@ const ChatTab = () => {
               disabled: !canTalk,
               onchange: (e) => {
                 if (!e.target.files || !e.target.files[0]) return;
-                const file = e.target.files[0];
-                formatChatImage(file, (imgTag) => {
-                  if (imgTag) {
-                    State.chatInputMsg = (State.chatInputMsg || '') + imgTag;
-                    m.redraw();
-                  }
-                });
+                attachImage(e.target.files[0]);
                 e.target.value = '';
               }
             })
           ]),
 
           m('textarea.chat-textarea', {
-            placeholder: canTalk ? 'Type your encrypted message here... (or paste image)' : 'Waiting for tunnel to be secured...',
+            placeholder: !canTalk
+              ? 'Waiting for tunnel to be secured...'
+              : (State.attachedImage ? 'Add a caption... (optional)' : 'Type a message here...'),
             disabled: !canTalk,
             value: State.chatInputMsg,
-            style: 'flex: 1; resize: none; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.5rem; font-family: inherit; font-size: 0.9rem; outline: none; min-height: 40px; max-height: 120px;',
+            rows: 1,
+            style: 'flex: 1; resize: none; border: 1px solid #cbd5e1; border-radius: 0.625rem; padding: 0.55rem 0.75rem; font-family: inherit; font-size: 0.9rem; line-height: 1.45; outline: none; min-height: 40px; max-height: 160px; height: 40px; box-sizing: border-box; overflow-y: hidden;',
+            oncreate: (vnode) => autoResizeTextarea(vnode.dom),
+            onupdate: (vnode) => autoResizeTextarea(vnode.dom),
             oninput: (e) => {
-              State.chatInputMsg = e.target.value;
+              setChatDraft(e.target.value);
+              autoResizeTextarea(e.target);
             },
             onpaste: (e) => {
               if (!canTalk) return;
@@ -296,9 +422,11 @@ const ChatTab = () => {
                 if (items[i].type.indexOf('image') !== -1) {
                   e.preventDefault();
                   const blob = items[i].getAsFile();
-                  formatChatImage(blob, (imgTag) => {
-                    if (imgTag) {
-                      State.chatInputMsg = (State.chatInputMsg || '') + imgTag;
+                  formatChatImage(blob, (imgTag, dataUrl) => {
+                    if (imgTag && dataUrl) {
+                      State.attachedImage = { imgTag, dataUrl, name: 'Pasted image' };
+                      const session = getDistantChatSession(State.selectedId);
+                      if (session) session.attachedImage = State.attachedImage;
                       m.redraw();
                     }
                   });
@@ -307,9 +435,25 @@ const ChatTab = () => {
               }
             },
             onkeydown: (e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (canTalk) sendDistantChatMessage();
+              if (e.key === 'Enter' || e.keyCode === 13) {
+                if (!e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                  e.preventDefault();
+                  if (canTalk) sendDistantChatMessage();
+                } else if (e.ctrlKey || e.metaKey) {
+                  e.preventDefault();
+                  if (!document.execCommand || !document.execCommand('insertText', false, '\n')) {
+                    const start = e.target.selectionStart || 0;
+                    const end = e.target.selectionEnd || 0;
+                    const val = e.target.value;
+                    const newVal = val.substring(0, start) + '\n' + val.substring(end);
+                    setChatDraft(newVal);
+                    e.target.value = newVal;
+                    e.target.selectionStart = e.target.selectionEnd = start + 1;
+                  } else {
+                    setChatDraft(e.target.value);
+                  }
+                  autoResizeTextarea(e.target);
+                }
               }
             },
           }),

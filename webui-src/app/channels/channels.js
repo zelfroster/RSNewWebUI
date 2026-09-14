@@ -7,48 +7,69 @@ const peopleUtil = require('people/people_util');
 
 const getChannels = {
   All: [],
-  PopularChannels: [],
-  SubscribedChannels: [],
+  Popular: [],
+  Subscribed: [],
   MyChannels: [],
-  OtherChannels: [],
+  Other: [],
   async load() {
-    const res = await rs.rsJsonApiRequest('/rsgxschannels/getChannelsSummaries');
-    const data = res.body;
-    getChannels.All = data.channels;
-    getChannels.SubscribedChannels = getChannels.All.filter(
+    try {
+      const res = await rs.rsJsonApiRequest('/rsgxschannels/getChannelsSummaries');
+      const channels = res && res.body && Array.isArray(res.body.channels) ? res.body.channels : null;
+      if (!channels) {
+        console.warn('Channels summaries response did not include channels', res && res.body);
+        return;
+      }
+      //  Sorted like the old Popular ∪ Other merge the All tab used to
+      //  render: most popular first, not the server's group-id order.
+      getChannels.All = [...channels].sort((a, b) => (b.mPop || 0) - (a.mPop || 0));
+      getChannels.Subscribed = channels.filter(
       (channel) =>
         channel.mSubscribeFlags === util.GROUP_SUBSCRIBE_SUBSCRIBED ||
         channel.mSubscribeFlags === util.GROUP_MY_CHANNEL // my channel is subscribed
-    );
-    // getChannels.PopularChannels = getChannels.All;
-    getChannels.PopularChannels = getChannels.All.filter(
-      (a) => !getChannels.SubscribedChannels.includes(a)
-    );
-    getChannels.PopularChannels.sort((a, b) => b.mPop - a.mPop);
-    getChannels.OtherChannels = getChannels.PopularChannels.slice(5);
-    getChannels.PopularChannels = getChannels.PopularChannels.slice(0, 5);
+      );
+      const popular = channels.filter((channel) => !getChannels.Subscribed.includes(channel));
+      popular.sort((a, b) => (b.mPop || 0) - (a.mPop || 0));
+      getChannels.Other = popular.slice(5);
+      getChannels.Popular = popular.slice(0, 5);
 
-    getChannels.MyChannels = getChannels.All.filter(
-      (channel) => channel.mSubscribeFlags === util.GROUP_MY_CHANNEL
-    );
+      getChannels.MyChannels = channels.filter(
+        (channel) => channel.mSubscribeFlags === util.GROUP_MY_CHANNEL
+      );
+      m.redraw();
+    } catch (error) {
+      console.warn('Failed to load channel summaries', error);
+    }
   },
 };
 
+//  Group lists change on the scale of a conversation, not of a frame.
+const CHANNEL_LIST_REFRESH_MS = 30000;
+
 const sections = {
+  All: require('channels/popular_channels'),
   MyChannels: require('channels/my_channels'),
-  SubscribedChannels: require('channels/subscribed_channels'),
-  PopularChannels: require('channels/popular_channels'),
-  OtherChannels: require('channels/other_channels'),
+  Subscribed: require('channels/subscribed_channels'),
+  Popular: require('channels/popular_channels'),
+  Other: require('channels/other_channels'),
 };
 
 const Layout = () => {
   let ownId;
+  const createChannel = () => ownId && widget.popupMessage(
+    m(viewUtil.createchannel, { authorId: ownId, onCreated: getChannels.load }),
+    'create-channel-modal'
+  );
 
   return {
     oninit: () => {
-      rs.setBackgroundTask(getChannels.load, 5000, () => {
-        // return m.route.get() === '/files/files';
-      });
+      //  The scope predicate used to be commented out, so it returned undefined
+      //  and setBackgroundTask stopped after the first interval: the channel list
+      //  was loaded once and never refreshed while the page stayed open. Same
+      //  period as the boards list, which asks the same kind of question -- a
+      //  five second poll of a whole summaries list is a lot to pay on a phone.
+      rs.setBackgroundTask(getChannels.load, CHANNEL_LIST_REFRESH_MS, () =>
+        m.route.get().startsWith('/channels')
+      );
       peopleUtil.ownIds((data) => {
         ownId = data;
         for (let i = 0; i < ownId.length; i++) {
@@ -61,18 +82,14 @@ const Layout = () => {
     },
     // onupdate: getChannels.load,
     view: (vnode) =>
-      m('.widget', [
+      m('.widget', {
+        class: vnode.attrs.pathInfo.mGroupId && !vnode.attrs.pathInfo.mMsgId ? 'channels-detail-widget' : '',
+      }, [
         m('.top-heading', [
           m(
-            'button',
+            'button.channels-create-button',
             {
-              onclick: () =>
-                ownId &&
-                widget.popupMessage(
-                  m(viewUtil.createchannel, {
-                    authorId: ownId,
-                  })
-                ),
+              onclick: createChannel,
             },
             'Create Channel'
           ),
@@ -95,23 +112,31 @@ const Layout = () => {
           : Object.prototype.hasOwnProperty.call(vnode.attrs.pathInfo, 'mGroupId') // channels view
           ? m(viewUtil.ChannelView, {
               id: vnode.attrs.pathInfo.mGroupId,
+              onSubscriptionChange: getChannels.load,
             })
           : m(sections[vnode.attrs.pathInfo.tab], {
               // subscribed, all, popular, other
-              list: getChannels[vnode.attrs.pathInfo.tab],
+              //  Not Popular ∪ Other: for channels those two sets EXCLUDE the
+              //  subscribed ones, so "All Channels" lost a channel the moment
+              //  the user subscribed to it. The full list already exists.
+              list: vnode.attrs.pathInfo.tab === 'All'
+                ? getChannels.All
+                : getChannels[vnode.attrs.pathInfo.tab],
+              title: vnode.attrs.pathInfo.tab === 'All' ? 'All Channels' : undefined,
+              category: vnode.attrs.pathInfo.tab,
+              onCreateChannel: createChannel,
             }),
       ]),
   };
 };
 
 module.exports = {
-  view: (vnode) => {
-    return [
-      m(widget.Sidebar, {
-        tabs: Object.keys(sections),
-        baseRoute: '/channels/',
-      }),
-      m('.node-panel', m(Layout, { pathInfo: vnode.attrs })),
-    ];
-  },
+  view: (vnode) => m(require('library_layout'), {
+    title: 'Channels',
+    icon: 'tv',
+    tabs: Object.keys(sections).filter((tab) => tab !== 'All'),
+    mobileTabs: [{ tab: 'MyChannels', label: 'My' }, 'Subscribed', 'All'],
+    baseRoute: '/channels/',
+    detailOpen: Boolean(vnode.attrs.mGroupId),
+  }, m(Layout, { pathInfo: vnode.attrs })),
 };

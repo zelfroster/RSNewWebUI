@@ -1,6 +1,6 @@
 const m = require('mithril');
 
-const widget = require('widgets');
+const LibraryLayout = require('library_layout');
 
 const downloads = require('files/files_downloads');
 const uploads = require('files/files_uploads');
@@ -31,15 +31,13 @@ const sections = {
 };
 
 const Layout = {
-  view: (vnode) => [
-    m(widget.Sidebar, {
-      tabs: Object.keys(sections),
-      baseRoute: '/files/',
-    }),
-    m('.node-panel', m('.widget', vnode.children)),
-  ],
+  view: (vnode) => m(LibraryLayout, {
+    title: 'Files',
+    icon: 'folder-open',
+    tabs: Object.keys(sections),
+    baseRoute: '/files/',
+  }, m('.widget', vnode.children)),
 };
-
 module.exports = {
   view: (vnode) => {
     const tab = vnode.attrs.tab;

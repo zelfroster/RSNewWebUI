@@ -1,5 +1,4 @@
 const m = require('mithril');
-const widget = require('widgets');
 const rs = require('rswebui');
 const util = require('forums/forums_util');
 const viewUtil = require('forums/forum_view');
@@ -7,15 +6,15 @@ const peopleUtil = require('people/people_util');
 
 const getForums = {
   All: [],
-  PopularForums: [],
-  SubscribedForums: [],
+  Popular: [],
+  Subscribed: [],
   MyForums: [],
   async load() {
     const res = await rs.rsJsonApiRequest('/rsgxsforums/getForumsSummaries');
     if (res && res.body && res.body.forums) {
       getForums.All = res.body.forums;
-      getForums.PopularForums = getForums.All;
-      getForums.SubscribedForums = getForums.All.filter(
+      getForums.Popular = getForums.All;
+      getForums.Subscribed = getForums.All.filter(
         (forum) =>
           forum.mSubscribeFlags === util.GROUP_SUBSCRIBE_SUBSCRIBED ||
           forum.mSubscribeFlags === util.GROUP_MY_FORUM
@@ -26,19 +25,35 @@ const getForums = {
     }
   },
 };
+//  Group lists change on the scale of a conversation, not of a frame.
+const FORUM_LIST_REFRESH_MS = 30000;
+
 const sections = {
+  All: require('forums/popular_forums'),
   MyForums: require('forums/my_forums'),
-  SubscribedForums: require('forums/subscribed_forums'),
-  PopularForums: require('forums/popular_forums'),
-  OtherForums: require('forums/other_forums'),
+  Subscribed: require('forums/subscribed_forums'),
+  Popular: require('forums/popular_forums'),
+  Other: require('forums/other_forums'),
 };
 
 const Layout = () => {
   let ownId;
+  const createForum = () =>
+    ownId &&
+    util.popupmessage(
+      m(viewUtil.createforum, {
+        authorId: ownId,
+        onCreated: getForums.load,
+      }),
+      'create-forum-modal'
+    );
 
   return {
     oninit: () => {
-      rs.setBackgroundTask(getForums.load, 5000, () => {
+      //  Was every 5 s. getForumsSummaries returns the whole list every time,
+      //  and on a phone each poll is a fresh TCP handshake on a server that
+      //  answers one request at a time; the boards list already settled on 30 s.
+      rs.setBackgroundTask(getForums.load, FORUM_LIST_REFRESH_MS, () => {
         return m.route.get().includes('/forums');
       });
       peopleUtil.ownIds((data) => {
@@ -51,20 +66,18 @@ const Layout = () => {
         ownId.unshift(0);
       });
     },
-    view: (vnode) =>
-      m('.widget', [
+    view: (vnode) => {
+      const isForumDetail = vnode.attrs.pathInfo.mGroupId && !vnode.attrs.pathInfo.mMsgId;
+      const isThreadDetail = vnode.attrs.pathInfo.mGroupId && vnode.attrs.pathInfo.mMsgId;
+      return m('.widget', {
+        class: isForumDetail ? 'forums-detail-widget' : isThreadDetail ? 'forums-thread-widget' : '',
+      }, [
         m('.top-heading', [
           vnode.attrs.pathInfo.tab === 'MyForums' &&
           m(
-            'button',
+            'button.forums-create-button',
             {
-              onclick: () =>
-                ownId &&
-                util.popupmessage(
-                  m(viewUtil.createforum, {
-                    authorId: ownId,
-                  })
-                ),
+              onclick: createForum,
             },
             'Create Forum'
           ),
@@ -80,22 +93,31 @@ const Layout = () => {
           : Object.prototype.hasOwnProperty.call(vnode.attrs.pathInfo, 'mGroupId') // Forum's view
             ? m(viewUtil.ForumView, {
               id: vnode.attrs.pathInfo.mGroupId,
+              onSubscriptionChange: getForums.load,
             })
             : m(sections[vnode.attrs.pathInfo.tab], {
-              list: getForums[vnode.attrs.pathInfo.tab],
+              //  The full list, not Popular ∪ Other: getForums has no Other key,
+              //  and the merge only worked because forums' Popular happens to
+              //  alias the full list -- a trap for whoever makes it a top-5.
+              list: vnode.attrs.pathInfo.tab === 'All'
+                ? getForums.All
+                : getForums[vnode.attrs.pathInfo.tab],
+              title: vnode.attrs.pathInfo.tab === 'All' ? 'All Forums' : undefined,
+              category: vnode.attrs.pathInfo.tab,
+              onCreateForum: createForum,
             }),
-      ]),
+      ]);
+    },
   };
 };
 
 module.exports = {
-  view: (vnode) => {
-    return [
-      m(widget.Sidebar, {
-        tabs: Object.keys(sections),
-        baseRoute: '/forums/',
-      }),
-      m('.node-panel', m(Layout, { pathInfo: vnode.attrs })),
-    ];
-  },
+  view: (vnode) => m(require('library_layout'), {
+    title: 'Forums',
+    icon: 'bullhorn',
+    tabs: Object.keys(sections).filter((tab) => tab !== 'All'),
+    mobileTabs: [{ tab: 'MyForums', label: 'My' }, 'Subscribed', 'All'],
+    baseRoute: '/forums/',
+    detailOpen: Boolean(vnode.attrs.mGroupId),
+  }, m(Layout, { pathInfo: vnode.attrs })),
 };

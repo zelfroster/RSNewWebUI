@@ -5,8 +5,34 @@
 
 button {
   @include button($primary-color);
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 button.red {
   @include button($red-color);
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+// Control buttons, close buttons, and icon buttons must not inherit 3D inset box shadows
+button.close-btn,
+.close-btn,
+.modal-close,
+.history-modal .close-btn,
+.rightbar-close,
+button.icon-btn,
+button.btn-icon,
+button.mail-tool-btn,
+button.mail-filter-pill,
+button.mail-view-back-btn,
+button.mail-action-btn,
+button.spam-btn,
+button.mail-compose-btn,
+button[class*="close"] {
+  box-shadow: none !important;
+
+  &:active {
+    box-shadow: none !important;
+  }
 }
 

@@ -3,33 +3,54 @@ const rs = require('rswebui');
 const peopleState = require('people/people_state');
 
 const HistoryBrowserModal = () => {
+  //  This modal is mounted with its page and draws nothing until it is asked
+  //  for, so oninit is the moment the *conversation* opens, not the moment the
+  //  browser does. Loading there meant every chat opening ran "give me every
+  //  message ever stored" -- loadCount 0 -- for a panel nobody had asked for.
+  let wasOpen = false;
+
+  const loadOnOpen = (vnode) => {
+    const chatState = require('chat/chat_state');
+    const isRoom = vnode.attrs && vnode.attrs.isRoom;
+    const externalState = vnode.attrs && vnode.attrs.state;
+
+    if (externalState) {
+      externalState.historySearchQuery = '';
+      return;
+    }
+    if (isRoom) {
+      chatState.ChatHubState.historySearchQuery = '';
+      const lobbyId = chatState.ChatLobbyModel.currentLobby
+        ? rs.idToHex(chatState.ChatLobbyModel.currentLobby.lobby_id)
+        : null;
+      if (lobbyId) chatState.ChatLobbyModel.loadAllHistoryForRoom(lobbyId);
+      return;
+    }
+    peopleState.State.historySearchQuery = '';
+    peopleState.loadAllHistoryForSelectedPeer();
+  };
+
   return {
-    oninit: (vnode) => {
-      const chatState = require('chat/chat_state');
-      const isRoom = vnode.attrs && vnode.attrs.isRoom;
-      if (isRoom) {
-        chatState.ChatHubState.historySearchQuery = '';
-        const lobbyId = chatState.ChatLobbyModel.currentLobby ? rs.idToHex(chatState.ChatLobbyModel.currentLobby.lobby_id) : null;
-        if (lobbyId) {
-          chatState.ChatLobbyModel.loadAllHistoryForRoom(lobbyId);
-        }
-      } else {
-        peopleState.State.historySearchQuery = '';
-        peopleState.loadAllHistoryForSelectedPeer();
-      }
-    },
     view: (vnode) => {
       const chatState = require('chat/chat_state');
       const isRoom = vnode.attrs && vnode.attrs.isRoom;
-      const stateObj = isRoom ? chatState.ChatHubState : peopleState.State;
+      const externalState = vnode.attrs && vnode.attrs.state;
+      const stateObj = externalState || (isRoom ? chatState.ChatHubState : peopleState.State);
 
-      if (!stateObj.showHistoryModal) return null;
+      if (!stateObj.showHistoryModal) {
+        wasOpen = false;
+        return null;
+      }
+      if (!wasOpen) {
+        wasOpen = true;
+        loadOnOpen(vnode);
+      }
 
-      let name = 'Chat History';
-      if (isRoom) {
+      let name = (vnode.attrs && vnode.attrs.name) || 'Chat History';
+      if (!externalState && isRoom) {
         const lobby = chatState.ChatLobbyModel.currentLobby;
         name = lobby ? lobby.lobby_name : 'Chat Room';
-      } else {
+      } else if (!externalState) {
         const details = peopleState.State.selectedId ? peopleState.State.gxsIdToDetailsMap[peopleState.State.selectedId] : null;
         name = details ? (details.mNickname || details.mGroupName || 'Contact') : 'Contact';
       }
@@ -42,13 +63,13 @@ const HistoryBrowserModal = () => {
       });
 
       return m('.history-modal-overlay', {
-        style: 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000;',
+        style: 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; background-color: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000;',
         onclick: (e) => {
           if (e.target === e.currentTarget) stateObj.showHistoryModal = false;
         }
       }, [
         m('.history-modal', {
-          style: 'background: #ffffff; border-radius: 0.5rem; width: 780px; max-width: 92%; height: 85vh; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden;'
+          style: 'background: #ffffff; border-radius: 0.5rem; width: 780px; max-width: 92%; height: 85vh; height: 85dvh; max-height: 85dvh; display: flex; flex-direction: column; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden;'
         }, [
           // Header
           m('.history-modal-header', {
@@ -59,8 +80,17 @@ const HistoryBrowserModal = () => {
               m('h3', { style: 'margin: 0; font-size: 1.1rem; font-weight: 700; color: #1e293b;' }, `Chat History Browser — ${name}`),
             ]),
             m('button.close-btn', {
-              style: 'background: transparent; border: none; font-size: 1.25rem; color: #64748b; cursor: pointer; padding: 0.25rem; border-radius: 0.25rem;',
+              type: 'button',
+              style: 'background: transparent; border: none; box-shadow: none !important; font-size: 1.25rem; color: #64748b; cursor: pointer; padding: 0.35rem; border-radius: 0.375rem; width: auto; height: auto; min-width: unset; line-height: 1; display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s ease, color 0.15s ease;',
               title: 'Close history browser',
+              onmouseenter: (e) => {
+                e.currentTarget.style.background = '#e2e8f0';
+                e.currentTarget.style.color = '#1e293b';
+              },
+              onmouseleave: (e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#64748b';
+              },
               onclick: () => (stateObj.showHistoryModal = false),
             }, m('i.fas.fa-times')),
           ]),
@@ -93,13 +123,15 @@ const HistoryBrowserModal = () => {
                 ])
               : filteredHistory.length === 0
                 ? m('.empty-history', { style: 'text-align: center; padding: 3rem; color: #64748b;' }, [
-                    m('i.far.fa-comments', { style: 'font-size: 2.5rem; color: #cbd5e1; margin-bottom: 0.75rem;' }),
+                    m('i.fas.fa-comments', { style: 'font-size: 2.5rem; color: #cbd5e1; margin-bottom: 0.75rem;' }),
                     m('p', 'No past chat messages found matching your query.'),
                   ])
                 : filteredHistory.map((msg) => {
                     const isIncoming = msg.incoming;
                     let senderName = msg.peerName || (isIncoming ? name : 'You');
-                    if (!isIncoming) {
+                    if (!isIncoming && externalState) {
+                      senderName = (vnode.attrs && vnode.attrs.ownName) || 'You';
+                    } else if (!isIncoming) {
                       const ownId = isRoom ? (chatState.ChatLobbyModel.currentLobby ? chatState.ChatLobbyModel.currentLobby.gxs_id : '') : peopleState.State.selectedOwnGxsIdForChat;
                       senderName = rs.userList.username(ownId) || 'You';
                     }

@@ -3,9 +3,12 @@ const rs = require('rswebui');
 const widget = require('widgets');
 const peopleUtil = require('people/people_util');
 const chatEmoji = require('chat/chat_emoji');
+const renderIdentityTooltip = require('mail/mail_identity_tooltip');
 
 const UserAvatarsCache = {};
+const RecipientDetailsCache = {};
 const MAX_RECIPIENTS = 20;
+const RecipientResult = require('mail/mail_recipient_result');
 
 function formatFileSize(bytes) {
   if (!bytes) return '0 B';
@@ -23,6 +26,39 @@ const Layout = () => {
   let showEmojiPicker = false;
   let emojiSearch = '';
   let emojiCategory = 'Smileys';
+  let hoveredRecipient = null;
+
+  function showRecipientTooltip(item, element) {
+    hoveredRecipient = {
+      id: item.mGroupId,
+      name: item.mGroupName,
+      rect: (element.querySelector('.mail-recipient-result__id') || element).getBoundingClientRect(),
+    };
+
+    if (!RecipientDetailsCache[item.mGroupId]) {
+      rs.rsJsonApiRequest('/rsIdentity/getIdDetails', { id: item.mGroupId }, (data) => {
+        if (data && data.details) {
+          RecipientDetailsCache[item.mGroupId] = data.details;
+          UserAvatarsCache[item.mGroupId] = data.details.mAvatar;
+          m.redraw();
+        }
+      });
+    }
+  }
+
+  function renderRecipientTooltip() {
+    if (!hoveredRecipient) return null;
+    const details = RecipientDetailsCache[hoveredRecipient.id];
+    if (!details) return null;
+
+    return renderIdentityTooltip({
+      details,
+      gxsId: hoveredRecipient.id,
+      name: hoveredRecipient.name,
+      rect: hoveredRecipient.rect,
+      belowAnchor: true,
+    });
+  }
 
   const Data = {
     allUsers: [],
@@ -488,13 +524,25 @@ const Layout = () => {
                   m('input[type=text].recipients__input-field', {
                     value: Data.recipients.to.inputVal,
                     oninput: (e) => handleInput(e, 'to'),
-                    placeholder: totalRecipients() >= MAX_RECIPIENTS ? 'Max recipients reached' : '',
+                    placeholder: totalRecipients() >= MAX_RECIPIENTS
+                      ? 'Max recipients reached'
+                      : Data.recipients.to.sendList.length === 0
+                        ? 'Recipients'
+                        : '',
                     disabled: totalRecipients() >= MAX_RECIPIENTS,
                   }),
                   m('ul.recipients__input-list[autocomplete=off]', [
                     Data.recipients.to.inputList.length > 0
                       ? Data.recipients.to.inputList.map((item) =>
-                          m('li', { onclick: () => handleClick(item, 'to') }, item.mGroupName)
+                          //  The key sits on the li: keyed children under an
+                          //  unkeyed row were recreated -- observer and all --
+                          //  at every keystroke that shifted the filtered list.
+                          m('li', {
+                            key: item.mGroupId,
+                            onclick: () => handleClick(item, 'to'),
+                            onmouseenter: (event) => showRecipientTooltip(item, event.currentTarget),
+                            onmouseleave: () => (hoveredRecipient = null),
+                          }, m(RecipientResult, { item }))
                         )
                       : m('li', 'No Item'),
                   ]),
@@ -552,8 +600,13 @@ const Layout = () => {
                         ? Data.recipients[recipientType].inputList.map((item) =>
                             m(
                               'li',
-                              { onclick: () => handleClick(item, recipientType) },
-                              item.mGroupName
+                              {
+                                key: item.mGroupId,
+                                onclick: () => handleClick(item, recipientType),
+                                onmouseenter: (event) => showRecipientTooltip(item, event.currentTarget),
+                                onmouseleave: () => (hoveredRecipient = null),
+                              },
+                              m(RecipientResult, { item })
                             )
                           )
                         : m('li', 'No Item'),
@@ -565,6 +618,7 @@ const Layout = () => {
             totalRecipients() >= MAX_RECIPIENTS && m('.compose-mail__recipient-limit', {
               style: { color: '#e67e22', fontSize: '0.85rem', padding: '0.25rem 0' }
             }, `Maximum of ${MAX_RECIPIENTS} recipients reached. Remove a recipient to add more.`),
+            renderRecipientTooltip(),
           ]),
           m('input.compose-mail__subject[type=text][placeholder=Subject]', {
             value: Data.subject,
@@ -641,83 +695,65 @@ const Layout = () => {
             }),
 
             // Modern Mail Composer Bottom Toolbar
-            m('.mail-compose-toolbar', {
-              style: 'display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; background: #ffffff; border: 1px solid #cbd5e1; border-top: 1px solid #e2e8f0; border-radius: 0 0 0.375rem 0.375rem; position: relative;'
-            }, [
-              m('.toolbar-left', { style: 'display: flex; align-items: center; gap: 0.5rem;' }, [
-                m('button.mail-compose-send-btn', {
-                  style: 'display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 1.25rem; background: #019DFF; color: #ffffff; border: none; border-radius: 1.5rem; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: background 0.15s ease; box-shadow: 0 2px 4px rgba(1,157,255,0.25);',
+            m('.mail-compose-toolbar', [
+              m('.toolbar-left', [
+                m('button.mail-compose-send-btn[type=button]', {
                   onclick: sendMail,
                 }, [
                   m('span', 'Send'),
-                  m('i.fas.fa-paper-plane', { style: 'font-size: 0.85rem;' }),
+                  m('i.fas.fa-paper-plane'),
                 ]),
-                m('.toolbar-divider', { style: 'width: 1px; height: 22px; background: #cbd5e1; margin: 0 0.25rem;' }),
-                m('button.mail-tool-btn', {
-                  type: 'button',
+                m('.toolbar-divider'),
+                m('button.mail-tool-btn[type=button]', {
                   title: 'Attach files',
-                  style: 'width: 34px; height: 34px; border-radius: 50%; border: none; background: transparent; color: #475569; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s ease;',
-                  onmouseenter: (e) => (e.currentTarget.style.background = '#f1f5f9'),
-                  onmouseleave: (e) => (e.currentTarget.style.background = 'transparent'),
                   onclick: () => {
                     const input = document.getElementById('mail-file-attach');
                     if (input) input.click();
                   },
-                }, m('i.fas.fa-paperclip', { style: 'font-size: 1.05rem;' })),
-                m('button.mail-tool-btn', {
-                  type: 'button',
+                }, m('i.fas.fa-paperclip')),
+                m('button.mail-tool-btn[type=button]', {
                   title: 'Insert image',
-                  style: 'width: 34px; height: 34px; border-radius: 50%; border: none; background: transparent; color: #475569; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s ease;',
-                  onmouseenter: (e) => (e.currentTarget.style.background = '#f1f5f9'),
-                  onmouseleave: (e) => (e.currentTarget.style.background = 'transparent'),
                   onclick: () => {
                     const input = document.getElementById('mail-image-attach');
                     if (input) input.click();
                   },
-                }, m('i.fas.fa-image', { style: 'font-size: 1.05rem;' })),
-                m('button.mail-tool-btn', {
-                  type: 'button',
+                }, m('i.fas.fa-image')),
+                m('button.mail-tool-btn[type=button]', {
                   title: 'Insert emoji',
-                  style: `width: 34px; height: 34px; border-radius: 50%; border: none; background: ${showEmojiPicker ? '#e0f2fe' : 'transparent'}; color: ${showEmojiPicker ? '#0284c7' : '#475569'}; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s ease;`,
+                  class: showEmojiPicker ? 'active' : '',
                   onclick: () => (showEmojiPicker = !showEmojiPicker),
-                }, m('i.fas.fa-smile', { style: 'font-size: 1.05rem;' })),
+                }, m('i.fas.fa-smile')),
               ]),
 
               // Floating Emoji Picker Popover
-              showEmojiPicker && m('.mail-emoji-picker-popover', {
-                style: 'position: absolute; bottom: 50px; left: 130px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 0.5rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1); width: 320px; max-height: 340px; z-index: 2000; display: flex; flex-direction: column; overflow: hidden;',
+              showEmojiPicker && m('.emoji-picker', {
+                style: 'position: absolute; bottom: 50px; left: 130px; z-index: 2000;',
                 onclick: (e) => e.stopPropagation(),
               }, [
-                m('.emoji-search-bar', { style: 'padding: 0.5rem; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 0.5rem;' }, [
-                  m('i.fas.fa-search', { style: 'color: #94a3b8; font-size: 0.85rem;' }),
-                  m('input[type=text][placeholder=Search emoji...]', {
-                    style: 'border: none; outline: none; width: 100%; font-size: 0.85rem;',
+                m('.emoji-search-row', [
+                  m('i.fas.fa-search.emoji-search-icon'),
+                  m('input.emoji-search-input[type=text][placeholder=Search emoji...]', {
                     value: emojiSearch,
                     oninput: (e) => (emojiSearch = e.target.value),
                   }),
-                  emojiSearch && m('i.fas.fa-times', {
-                    style: 'cursor: pointer; color: #94a3b8; font-size: 0.85rem;',
+                  emojiSearch && m('button.emoji-search-clear[type=button]', {
                     onclick: () => (emojiSearch = ''),
-                  }),
+                  }, m('i.fas.fa-times')),
                 ]),
-                !emojiSearch && m('.emoji-cat-bar', { style: 'display: flex; background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 0.25rem; overflow-x: auto;' },
+                !emojiSearch && m('.emoji-categories',
                   chatEmoji.EMOJI_CATEGORIES.map((c) =>
-                    m('button', {
-                      style: `border: none; background: ${c === emojiCategory ? '#ffffff' : 'transparent'}; border-radius: 0.25rem; padding: 0.3rem 0.4rem; cursor: pointer; font-size: 1rem; box-shadow: ${c === emojiCategory ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'};`,
+                    m('button.emoji-cat-btn[type=button]' + (c === emojiCategory ? '.active' : ''), {
                       title: c,
                       onclick: () => (emojiCategory = c),
                     }, chatEmoji.EMOJI_ICONS[c])
                   )
                 ),
-                m('.emoji-grid-body', { style: 'padding: 0.5rem; display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem; max-height: 230px; overflow-y: auto;' },
+                m('.emoji-grid',
                   (emojiSearch
                     ? Object.values(chatEmoji.EMOJI_DATA).flat().filter((e) => e.includes(emojiSearch))
                     : (chatEmoji.EMOJI_DATA[emojiCategory] || [])
                   ).map((e) =>
-                    m('button', {
-                      style: 'border: none; background: transparent; font-size: 1.25rem; cursor: pointer; padding: 0.25rem; border-radius: 0.25rem; transition: background 0.15s ease;',
-                      onmouseenter: (ev) => (ev.currentTarget.style.background = '#f1f5f9'),
-                      onmouseleave: (ev) => (ev.currentTarget.style.background = 'transparent'),
+                    m('button.emoji-btn[type=button]', {
                       onclick: () => {
                         insertEmoji(e);
                         showEmojiPicker = false;
@@ -725,7 +761,7 @@ const Layout = () => {
                     }, e)
                   )
                 ),
-              ])
+              ]),
             ]),
           ]),
         ]),

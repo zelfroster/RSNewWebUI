@@ -4,7 +4,12 @@ const util = require('channels/channels_util');
 const Layout = () => {
   return {
     view: (v) => [
-      m('.widget__heading', m('h3', 'My Channels')),
+      m('.widget__heading', [
+        m('h3', 'My Channels'),
+        m('button.channels-heading-create[type=button][title=Create Channel][aria-label=Create Channel]', {
+          onclick: v.attrs.onCreateChannel,
+        }, m('i.fas.fa-plus')),
+      ]),
       m('.widget__body', [
         m(
           util.ChannelTable,

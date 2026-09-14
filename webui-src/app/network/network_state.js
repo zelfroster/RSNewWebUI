@@ -6,53 +6,126 @@ const peopleUtil = require('people/people_util');
 const State = {
   ownProfile: {
     name: 'Loading...',
+    location: '',
     ssl_id: '',
     gpg_id: '',
     customState: '',
+    statusValue: 3,
+    statusTimestamp: 0,
     avatar: '',
   },
   ownGxsIds: [],
   selectedOwnGxsId: '',
   selectedOwnGxsDetails: null,
   selectedFriendGpgId: null,
-  activeTab: 'details', // 'details' | 'chat'
+  mainTab: 'network', // 'network' | 'chats'
+  activeTab: 'details', // 'details' | 'chat' | 'graph'
+  mobilePane: 'list', // Phone master/detail navigation: 'list' | 'detail'
   searchString: '',
   gpgToGxsIdMap: {},
   gxsIdToDetailsMap: {},
   gxsIdentities: [],
+  chatHistoryMap: {}, // gpgId -> { lastMsg, lastTime }
+  unreadChatCount: {}, // gpgId -> unread messages received during this session
   currentChatPeerId: null,
   chatMessages: [],
   chatInputMsg: '',
+  attachedImage: null,
   showMailCompose: false,
+  showAttachModal: false,
+  attachPath: '',
+  attachBrowseHint: false,
+  isHashing: false,
+  hashingError: '',
+  showEmojiPicker: false,
+  showHistoryModal: false,
+  historySearchQuery: '',
+  fullHistoryMessages: [],
+  isHistoryLoading: false,
 };
 
 function loadOwnProfile() {
+  rs.rsJsonApiRequest('/rsStatus/getOwnStatus', {}, (statusData) => {
+    if (statusData && statusData.retval && statusData.statusInfo) {
+      State.ownProfile.statusValue = statusData.statusInfo.status;
+      State.ownProfile.statusTimestamp = statusData.statusInfo.time_stamp || 0;
+      m.redraw();
+    }
+  }).catch(() => {});
+
+  const fetchOwnCustomState = () => {
+    rs.rsJsonApiRequest('/rsChats/getOwnCustomStateString', {}, (statusData) => {
+      if (statusData) {
+        let customState;
+        if (typeof statusData.retval === 'string') {
+          customState = statusData.retval;
+        } else if (typeof statusData === 'string') {
+          customState = statusData;
+        } else if (statusData.retval && typeof statusData.retval === 'object') {
+          customState =
+            statusData.retval.status ||
+            statusData.retval.customState ||
+            statusData.retval.custom_state ||
+            statusData.retval.status_string ||
+            '';
+        } else {
+          customState =
+            statusData.customState ||
+            statusData.custom_state ||
+            statusData.status ||
+            statusData.status_string ||
+            statusData.ownCustomStateString ||
+            '';
+        }
+        State.ownProfile.customState = customState;
+        m.redraw();
+      }
+    }).catch(() => {
+      if (State.ownProfile.ssl_id) {
+        rs.rsJsonApiRequest(
+          '/rsChats/getCustomStateString',
+          { peer_id: State.ownProfile.ssl_id },
+          (statusData) => {
+            if (statusData) {
+              const customState =
+                typeof statusData.retval === 'string'
+                  ? statusData.retval
+                  : statusData.customState || statusData.custom_state || statusData.status || '';
+              State.ownProfile.customState = customState;
+              m.redraw();
+            }
+          }
+        ).catch(() => {});
+      }
+    });
+  };
+
+  fetchOwnCustomState();
+
   rs.rsJsonApiRequest('/rsConfig/getConfigNetStatus', {}, (data) => {
     if (data && data.status) {
       State.ownProfile.name = data.status.ownName || 'Unknown';
       State.ownProfile.ssl_id = data.status.ownId || '';
 
       if (State.ownProfile.ssl_id) {
-        rs.rsJsonApiRequest('/rsChats/getCustomStateString', { peer_id: State.ownProfile.ssl_id }, (statusData) => {
-          if (statusData && statusData.retval) {
-            State.ownProfile.customState = statusData.retval;
-            m.redraw();
-          }
-        });
+        fetchOwnCustomState();
 
         rs.rsJsonApiRequest('/rsPeers/getPeerDetails', { sslId: State.ownProfile.ssl_id }, (detData) => {
-          if (detData && detData.det && detData.det.gpg_id) {
-            State.ownProfile.gpg_id = detData.det.gpg_id;
+          if (detData && detData.det) {
+            State.ownProfile.gpg_id = detData.det.gpg_id || '';
+            State.ownProfile.location = detData.det.location || '';
             m.redraw();
           }
         });
 
+        /* Disabled getAvatar API call to avoid 404 network errors
         rs.rsJsonApiRequest('/rsChats/getAvatar', { pid: State.ownProfile.ssl_id }, (avatarData) => {
           if (avatarData && avatarData.retval && avatarData.avatar_base64_string) {
             State.ownProfile.avatar = avatarData.avatar_base64_string;
             m.redraw();
           }
         });
+        */
       }
       m.redraw();
     }
@@ -115,7 +188,16 @@ function loadGxsIdentities() {
 function startDirectChat(sslId) {
   State.currentChatPeerId = sslId;
   State.chatMessages = [];
+  State.attachedImage = null;
+  const normalizedSslId = String(sslId || '').toLowerCase();
+  const matchingFriend = Object.entries(Data.gpgDetails || {}).find(([, friend]) =>
+    ((friend && friend.locations) || []).some(
+      (location) => String(location.id || '').toLowerCase() === normalizedSslId
+    )
+  );
+  if (matchingFriend) markDirectChatRead(matchingFriend[0]);
   loadDirectChatMessages();
+  loadRecentDirectChatHistory();
 }
 
 function getOnlineSslId(gpgId) {
@@ -125,43 +207,223 @@ function getOnlineSslId(gpgId) {
   return onlineLoc ? onlineLoc.id : friend.locations[0].id;
 }
 
-function loadDirectChatMessages() {
-  rs.events[15].notify = (chatMessage) => {
-    if (
-      chatMessage.chat_id &&
-      (chatMessage.chat_id.type === 1 || chatMessage.chat_id.type === 2) &&
-      rs.idToHex(chatMessage.chat_id) === State.currentChatPeerId
-    ) {
-      State.chatMessages.push(chatMessage);
-      m.redraw();
+function isSystemMsg(msg) {
+  if (!msg) return false;
+  const str = String(msg);
+  return (
+    str.includes('Distant chat requested') ||
+    str.includes('Distant chat established') ||
+    str.includes('Distant chat closed') ||
+    str.includes('Distant chat status')
+  );
+}
+
+let historyPreloadInFlight = null;
+let historyPreloadLogin = null;
+
+function preloadNetworkChatHistory() {
+  //  The preload belongs to one login (rs.loginKey.generation bumps at every
+  //  credential change): the next login must not share the old in-flight
+  //  run -- which read the OLD friend list -- and the old run's answers must
+  //  not write previews under the new session.
+  const login = rs.loginKey.generation;
+  if (historyPreloadInFlight && historyPreloadLogin === login) return historyPreloadInFlight;
+  historyPreloadLogin = login;
+  const gpgIds = Object.keys(Data.gpgDetails || {});
+  const tasks = gpgIds.map((gpgId) => async () => {
+    if (!gpgId || gpgId === '0000000000000000') return;
+
+    const friend = Data.gpgDetails[gpgId];
+    const sslIds = Array.from(new Set(
+      ((friend && friend.locations) || []).map((location) => location.id).filter(Boolean)
+    ));
+
+    // Each queued friend loads its locations sequentially, keeping the total
+    // number of history requests within the network queue's concurrency limit.
+    const messageGroups = [];
+    for (const sslId of sslIds) {
+      await rs.rsJsonApiRequest(
+        '/rsHistory/getMessages',
+        { chatPeerId: directChatId(sslId), loadCount: 20 },
+        (msgData, success) => messageGroups.push(
+          success && msgData && Array.isArray(msgData.msgs) ? msgData.msgs : []
+        )
+      ).catch(() => {});
+    }
+    const userMsgs = messageGroups.flat().filter(
+      (message) => !message.isSystem && !isSystemMsg(message.message || message.msg)
+    ).sort(
+      (a, b) => (a.sendTime || a.recvTime || 0) - (b.sendTime || b.recvTime || 0)
+    );
+    if (userMsgs.length === 0) return;
+    //  An answer from the previous login's run must not write previews into
+    //  the next session.
+    if (rs.loginKey.generation !== login) return;
+    const last = userMsgs[userMsgs.length - 1];
+    State.chatHistoryMap[gpgId] = {
+      lastMsg: last.message || last.msg || '',
+      lastTime: last.sendTime || last.recvTime || Math.floor(Date.now() / 1000),
+    };
+    m.redraw();
+  });
+  historyPreloadInFlight = Data.runQueued(tasks)
+    .finally(() => { if (historyPreloadLogin === login) historyPreloadInFlight = null; });
+  return historyPreloadInFlight;
+}
+
+function receiveDirectChatMessage(chatMessage) {
+    const messagePeerId = chatMessage.chat_id && chatMessage.chat_id.peer_id
+      ? rs.idToHex(chatMessage.chat_id.peer_id)
+      : '';
+    if (!chatMessage.chat_id || chatMessage.chat_id.type !== 1 || !messagePeerId) return;
+
+    const normalizedPeerId = messagePeerId.toLowerCase();
+    const matchingFriend = Object.entries(Data.gpgDetails || {}).find(([, friend]) =>
+      ((friend && friend.locations) || []).some(
+        (location) => String(location.id || '').toLowerCase() === normalizedPeerId
+      )
+    );
+    const gpgId = matchingFriend ? matchingFriend[0] : null;
+
+    // Update the Chats list for every private message, not only for the
+    // conversation that happens to be visible.
+    if (gpgId) {
+      State.chatHistoryMap[gpgId] = {
+        lastMsg: chatMessage.msg || chatMessage.message || '',
+        lastTime: chatMessage.sendTime || chatMessage.recvTime || Math.floor(Date.now() / 1000),
+      };
+
+      const isOpenConversation =
+        m.route.get().split('/')[1] === 'network' &&
+        State.activeTab === 'chat' &&
+        State.selectedFriendGpgId === gpgId &&
+        normalizedPeerId === String(State.currentChatPeerId || '').toLowerCase() &&
+        (window.innerWidth > 700 || State.mobilePane === 'detail');
+      if (chatMessage.incoming === true && !isOpenConversation) {
+        State.unreadChatCount[gpgId] = (State.unreadChatCount[gpgId] || 0) + 1;
+      }
+    }
+
+    if (normalizedPeerId === String(State.currentChatPeerId || '').toLowerCase()) {
+      State.chatMessages = mergeDirectChatMessages(State.chatMessages.concat(chatMessage));
       scrollChatToBottom();
     }
+    m.redraw();
+}
+
+function loadDirectChatMessages() {
+  // Kept for older callers. Incoming messages are now dispatched globally by
+  // main.js so counters continue to work while another page is open.
+}
+
+function markDirectChatRead(gpgId) {
+  if (!gpgId || !State.unreadChatCount[gpgId]) return;
+  State.unreadChatCount[gpgId] = 0;
+}
+
+function directChatId(peerId) {
+  return {
+    broadcast_status_peer_id: '00000000000000000000000000000000',
+    type: 1,
+    peer_id: peerId,
+    distant_chat_id: '00000000000000000000000000000000',
+    lobby_id: { xstr64: '0' },
   };
 }
 
-function sendDirectChatMessage() {
-  if (!State.chatInputMsg.trim() || !State.currentChatPeerId) return;
+function mergeDirectChatMessages(messages) {
+  const unique = new Map();
+  messages.forEach((message) => {
+    const text = message.msg || message.message || '';
+    const time = message.sendTime || message.recvTime || 0;
+    const incoming = message.incoming === true;
+    unique.set(`${time}_${incoming}_${text}`, message);
+  });
+  return Array.from(unique.values()).sort(
+    (a, b) => (a.sendTime || a.recvTime || 0) - (b.sendTime || b.recvTime || 0)
+  );
+}
 
-  const msg = State.chatInputMsg;
+function loadRecentDirectChatHistory() {
+  const peerId = State.currentChatPeerId;
+  if (!peerId) return;
+  rs.rsJsonApiRequest('/rsHistory/getMessages', {
+    chatPeerId: directChatId(peerId),
+    loadCount: 20,
+  }, (data, success) => {
+    if (peerId !== State.currentChatPeerId) return;
+    if (success && data && Array.isArray(data.msgs)) {
+      State.chatMessages = mergeDirectChatMessages(data.msgs.concat(State.chatMessages));
+      m.redraw();
+      scrollChatToBottom();
+    }
+  });
+}
+
+function loadAllDirectChatHistory() {
+  const peerId = State.currentChatPeerId;
+  if (!peerId) return;
+  State.isHistoryLoading = true;
+  State.fullHistoryMessages = [];
+  m.redraw();
+  rs.rsJsonApiRequest('/rsHistory/getMessages', {
+    chatPeerId: directChatId(peerId),
+    loadCount: 0,
+  }, (data, success) => {
+    if (peerId !== State.currentChatPeerId) return;
+    State.fullHistoryMessages = success && data && Array.isArray(data.msgs)
+      ? mergeDirectChatMessages(data.msgs)
+      : [];
+    State.isHistoryLoading = false;
+    m.redraw();
+  });
+}
+
+function sendDirectChatMessage() {
+  const text = (State.chatInputMsg || '').trim();
+  const attached = State.attachedImage;
+  if ((!text && !attached) || !State.currentChatPeerId) return;
+
+  const fullMsg = attached
+    ? (text ? `${text}\n${attached.imgTag}` : attached.imgTag)
+    : text;
+
+  // The selected conversation may change before the send completes.
+  const peerId = State.currentChatPeerId;
+  const friendGpgId = State.selectedFriendGpgId;
+  const msg = fullMsg;
   State.chatInputMsg = '';
+  State.attachedImage = null;
 
   rs.rsJsonApiRequest(
     '/rsChats/sendChat',
     {
-      id: { type: 1, peer_id: State.currentChatPeerId },
+      id: { type: 1, peer_id: peerId },
       msg,
     },
     (data, success) => {
       if (success) {
-        State.chatMessages.push({
-          chat_id: { type: 1, peer_id: State.currentChatPeerId },
-          msg,
-          sendTime: Date.now() / 1000,
-          incoming: false,
-          own: true,
-        });
+        const nowSec = Math.floor(Date.now() / 1000);
+        const isCurrentChat = State.currentChatPeerId === peerId
+          && State.selectedFriendGpgId === friendGpgId;
+        if (isCurrentChat) {
+          State.chatMessages.push({
+            chat_id: { type: 1, peer_id: peerId },
+            msg,
+            sendTime: nowSec,
+            incoming: false,
+            own: true,
+          });
+          scrollChatToBottom();
+        }
+
+        if (friendGpgId) {
+          State.chatHistoryMap[friendGpgId] = {
+            lastMsg: msg,
+            lastTime: nowSec,
+          };
+        }
         m.redraw();
-        scrollChatToBottom();
       } else {
         console.error('[RS] Failed to send direct chat message');
       }
@@ -176,15 +438,50 @@ function scrollChatToBottom() {
   }, 100);
 }
 
+function setOwnCustomStateString(statusString) {
+  const str = (statusString || '').trim();
+  rs.rsJsonApiRequest('/rsChats/setCustomStateString', { status_string: str }, () => {
+    State.ownProfile.customState = str;
+    m.redraw();
+  }).catch(() => {
+    State.ownProfile.customState = str;
+    m.redraw();
+  });
+}
+
+async function setOwnStatus(statusValue) {
+  const value = Number(statusValue);
+  if (![1, 2, 3].includes(value)) return false;
+
+  try {
+    const response = await rs.rsJsonApiRequest('/rsStatus/sendStatus', { status: value });
+    if (response && response.body && response.body.retval === false) return false;
+
+    State.ownProfile.statusValue = value;
+    State.ownProfile.statusTimestamp = Math.floor(Date.now() / 1000);
+    m.redraw();
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 module.exports = {
   State,
   loadOwnProfile,
+  setOwnCustomStateString,
+  setOwnStatus,
   loadSelectedOwnGxsDetails,
   fetchIdDetails,
   loadGxsIdentities,
   startDirectChat,
   getOnlineSslId,
+  preloadNetworkChatHistory,
   loadDirectChatMessages,
+  receiveDirectChatMessage,
+  markDirectChatRead,
+  loadRecentDirectChatHistory,
+  loadAllDirectChatHistory,
   sendDirectChatMessage,
   scrollChatToBottom,
 };
