@@ -623,10 +623,15 @@ const ChannelView = () => {
                 channelPostPublishTime(plist[b].post) - channelPostPublishTime(plist[a].post)
               ).map((key) => {
                 const commentCount = channelPostCommentCount(key, plist[key].post);
-                return [
-                m(
+                //  Keyed: the newest-first sort shifts every card when a post
+                //  arrives, and an unkeyed list makes mithril reuse DOM by
+                //  position -- the imperative onerror display:none of one
+                //  post's broken thumbnail then sticks to whatever post
+                //  shifts into that slot.
+                return m(
                   '.posts-container-card',
                   {
+                    key,
                     style: {
                       display: plist[key].isSearched ? 'flex' : 'none', // for search
                     },
@@ -661,8 +666,7 @@ const ChannelView = () => {
                       : m(ChannelFallbackThumbnail, { title: plist[key].post.mMeta.mMsgName }),
                     m('p', plist[key].post.mMeta.mMsgName),
                   ]
-                ),
-                ];
+                );
               })
             ),
           ]
