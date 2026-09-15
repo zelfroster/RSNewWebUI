@@ -50,12 +50,26 @@ const SearchField = {
   },
 };
 
+//  The one back button. Same look and size wherever you leave a detail view.
+//
+//  attrs: onclick, label (what you go back to, for screen readers)
+const BackButton = {
+  view: ({ attrs }) => m('button.back-button[type=button]', {
+    title: attrs.label || 'Back',
+    'aria-label': attrs.label || 'Back',
+    onclick: attrs.onclick,
+  }, icon('arrow-left')),
+};
+
 //  The page header -- see scss/components/_page-head.scss.
 //
-//  attrs: title, lead, mark (an icon name), actions (a vnode or array), class
+//  attrs: title, lead, mark (an icon name), actions (a vnode or array), class,
+//         back (BackButton attrs; a detail view passes this instead of giving
+//         the arrow a row of its own)
 const PageHead = {
   view: ({ attrs }) => m('.page-head', { class: attrs.class }, [
     m('.page-head__group', [
+      attrs.back ? m(BackButton, attrs.back) : null,
       attrs.mark ? m('.page-head__mark', icon(attrs.mark)) : null,
       m('.page-head__text', [
         m('h2.page-head__title', attrs.title),
@@ -324,6 +338,7 @@ function confirmMessage(options) {
 }
 
 module.exports = {
+  BackButton,
   PageHead,
   Segmented,
   Sidebar,

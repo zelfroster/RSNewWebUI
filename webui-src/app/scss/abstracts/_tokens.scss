@@ -43,7 +43,10 @@
 
   /* == Brand. The logo gradient and its primary. ===================== logo */
   --brand: #118fcc;       /* data/retroshare.svg */
-  --brand-deep: #0e8ecb;  /* gradient dark stop */
+  //  Also the ink of a selected row's label. On the old band that was 3.3:1
+  //  and on the stronger one it would have been 2.8:1; this reads 4.6:1 there
+  //  and 6.1:1 on white.
+  --brand-deep: #0a6899;  /* gradient dark stop, and selected-row ink */
   --brand-pale: #abe3ff;  /* gradient light stop */
   --brand-hover: #1a9ad6;
   --brand-press: #0b7cb2;
@@ -62,11 +65,16 @@
   --reach-2-ink: #5d7486; /* two or more hops, as readable text */
   --reach-off: #acb1b6;   /* offline */
 
-  /* == Selection. The Qt idiom: a pale sky band across the whole row. ===== */
-  --select: #cde8ff;
-  --select-soft: #e6f2fd;
-  --select-edge: #73c7ff;
-  --select-faint: #f0f8fd;
+  /* == Selection. The Qt idiom: a sky band across the whole row.
+     Pale, but not so pale that the row it marks is a guess. The first set
+     measured 1.14:1 against the surface behind it, which is below the point
+     where a tint is reliably visible at all -- reported from the PR as hard
+     to see. These sit at 1.31:1 for a selected row and 1.54:1 for the
+     stronger state, with the edge near the 3:1 asked of a UI boundary. */
+  --select: #a9d7ed;
+  --select-soft: #c9e5f4;
+  --select-edge: #4aa8e0;
+  --select-faint: #e4f1fa;
 
   /* == Status. Transfer direction and failure only — never chrome. ======== */
   --up: #32cd32;          /* uploading (fills, dots) */
@@ -91,7 +99,7 @@
   --ink-rgb: 25 35 45;
   --ground-rgb: 250 250 250;
   --brand-rgb: 17 143 204;
-  --select-rgb: 205 232 255;
+  --select-rgb: 169 215 237;
   --down-rgb: 205 50 50;
   --warn-rgb: 220 220 65;
 

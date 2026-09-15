@@ -24,12 +24,24 @@
   gap: var(--s4);
   flex: none;
   margin-bottom: var(--s4);
+  //  Wrap on the space there is, not on the width of the window. Every one of
+  //  these sits to the right of a 250px rail, so the header runs out of room
+  //  hundreds of pixels before a viewport breakpoint would say so -- which is
+  //  how Debug's three buttons and the Channels search both ended up hanging
+  //  off the side at 900px.
+  flex-wrap: wrap;
 
   &__group {
     display: flex;
     align-items: flex-start;
     gap: var(--s3);
     min-width: 0;
+  }
+
+  //  Sits on the title's cap height, not the block's middle, so a two line
+  //  header does not push it down.
+  &__group > .back-button {
+    margin-top: -3px;
   }
 
   //  The mark is a quiet identifier, not an illustration: it matches the
@@ -68,6 +80,7 @@
     align-items: center;
     gap: var(--s2);
     flex: 0 1 auto;
+    flex-wrap: wrap;
     min-width: 0;
 
     //  A filter field in a header is a fixed-width control, not something
