@@ -283,7 +283,7 @@ const ChatRoomHeader = () => {
                       ChatHubState.showHistoryModal = true;
                     }
                   },
-                  [icon('history'), ' History']
+                  [icon('history'), m('span.btn-text', ' History')]
                 ),
                 m(
                   'button.red',
@@ -315,7 +315,7 @@ const ChatRoomHeader = () => {
                       });
                     },
                   },
-                  [icon('sign-out-alt'), ' Leave Chat']
+                  [icon('sign-out-alt'), m('span.btn-text', ' Leave Chat')]
                 )
               ]
             : [
@@ -334,7 +334,7 @@ const ChatRoomHeader = () => {
                       ChatHubState.hoveredUser = null;
                     }
                   },
-                  [icon('users'), ' ' + ChatLobbyModel.users.length]
+                  [icon('users'), m('span.btn-text', ' ' + ChatLobbyModel.users.length)]
                 ),
                 m(
                   'button.chat-details-toggle',
@@ -349,8 +349,8 @@ const ChatRoomHeader = () => {
                     }
                   },
                   ChatHubState.activeTab === 'details'
-                    ? [icon('comments'), ' Chat']
-                    : [icon('info-circle'), ' Details']
+                    ? [icon('comments'), m('span.btn-text', ' Chat')]
+                    : [icon('info-circle'), m('span.btn-text', ' Details')]
                 ),
                 m('button.is-primary',
                   {
@@ -360,7 +360,7 @@ const ChatRoomHeader = () => {
                       loadFriendsForInvite();
                     }
                   },
-                  [icon('user-plus'), ' Invite']
+                  [icon('user-plus'), m('span.btn-text', ' Invite')]
                 ),
                 m(
                   'button.blue',
@@ -370,7 +370,7 @@ const ChatRoomHeader = () => {
                       ChatHubState.showHistoryModal = true;
                     }
                   },
-                  [icon('history'), ' History']
+                  [icon('history'), m('span.btn-text', ' History')]
                 ),
                 m(
                   'button.red',
@@ -385,7 +385,7 @@ const ChatRoomHeader = () => {
                       });
                     },
                   },
-                  [icon('sign-out-alt'), ' Leave']
+                  [icon('sign-out-alt'), m('span.btn-text', ' Leave')]
                 )
               ],
         ]),

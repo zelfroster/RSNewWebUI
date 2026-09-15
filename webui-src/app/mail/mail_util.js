@@ -909,16 +909,13 @@ const MessageView = () => {
         '.msg-view.mail-reading-card',
         [
           m('.msg-view-nav', [
-            m(
-              'button.mail-view-back-btn[type=button][title=Back][aria-label=Back]',
-              {
-                onclick: () => {
-                  if (v.attrs.onBack) v.attrs.onBack();
-                  else m.route.set('/mail/:tab', { tab: m.route.param().tab || 'inbox' });
-                },
+            m(widget.BackButton, {
+              label: 'Back to messages',
+              onclick: () => {
+                if (v.attrs.onBack) v.attrs.onBack();
+                else m.route.set('/mail/:tab', { tab: m.route.param().tab || 'inbox' });
               },
-              icon('chevron-left')
-            ),
+            }),
             //  A draft has not been sent, so there is nothing to reply to,
             //  forward, mark unread or flag as spam. Two actions apply to it:
             //  carry on writing, or throw it away.

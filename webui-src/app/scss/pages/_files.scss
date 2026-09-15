@@ -1018,9 +1018,14 @@ table.friendsfiles {
     color: var(--ink-body);
   }
 
+  //  Wraps under the heading on a narrow screen rather than running off the
+  //  side: two buttons with nowrap labels cannot fit beside a title at 320px.
   .action {
+    display: flex;
+    flex-wrap: wrap;
     margin-left: auto;
     align-items: center;
+    gap: var(--s2);
   }
 }
 

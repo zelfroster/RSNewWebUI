@@ -285,6 +285,10 @@
   border: 1px solid var(--line-soft);
   border-radius: var(--r-md);
   padding: 1rem;
+  //  A grid item's floor is its content unless it is told otherwise, so the
+  //  endpoint column -- one unbreakable path per row -- made the whole page
+  //  wider than a small phone instead of scrolling inside its own box.
+  min-width: 0;
 
   &__header {
     display: flex;
@@ -311,6 +315,7 @@
 }
 
 .debug-table-wrap {
+  min-width: 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border-radius: var(--r-md);
@@ -321,6 +326,17 @@
   width: 100%;
   border-collapse: collapse;
   font-size: var(--t-row);
+
+  //  An endpoint is one unbreakable path in a fixed column, so it ran straight
+  //  over the column beside it -- at 1180px as much as on a phone. The table
+  //  scrolls inside .debug-table-wrap, so the cell can keep its width and hand
+  //  the reader the full text on hover.
+  &__endpoint {
+    max-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
   th {
     text-align: left;

@@ -988,11 +988,6 @@ input.star-check {
     width: auto;
     background: var(--surface);
 
-    .mail-view-back-btn {
-      @include btn-base;
-      @include btn-glyph;
-    }
-
     .msg-view.mail-reading-card {
       width: 100%;
       max-width: none;
@@ -1050,35 +1045,6 @@ input.star-check {
   position: sticky;
   top: 0;
   z-index: 5;
-}
-
-.mail-view-back-btn {
-  @include btn-glyph;
-
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  flex-shrink: 0;
-
-  .icon {
-    width: 17px; height: 17px;
-    line-height: 1;
-    transition: transform 0.15s ease;
-  }
-  .fa-arrow-left::before {
-    content: "\f053";
-  }
-  &:hover {
-    background: var(--select);
-    color: var(--brand-deep);
-
-    .icon {
-      transform: translateX(-2px);
-    }
-  }
-  &:active {
-    transform: scale(0.92);
-  }
 }
 
 .msg-view-nav__action {
@@ -1182,6 +1148,18 @@ input.star-check {
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
+  //  A long nickname beside a full timestamp has nowhere to go on a narrow
+  //  reading pane: the row has to be allowed to shrink, and the name to
+  //  ellipsis, or the pair pushes past the pane's edge.
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.msg-details__info-row > .msg-sender-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .msg-sender-name {
@@ -1946,7 +1924,7 @@ input.star-check {
       display: none !important;
     }
 
-    .mail-view-back-btn {
+    .back-button {
       display: inline-flex !important;
     }
   }

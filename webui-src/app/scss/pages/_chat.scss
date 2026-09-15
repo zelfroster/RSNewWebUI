@@ -1048,6 +1048,12 @@ textarea.chatMsg {
     gap: .25rem;
   }
 
+  //  Icon only. The label has to be hidden for the 32px box to hold its
+  //  content: without that the text spills out of the button and the five
+  //  actions print on top of one another. `button i` used to do this job and
+  //  has matched nothing since the sprite began rendering <svg class="icon">.
+  //  The title attribute carries the name for a pointer, the aria-label for a
+  //  screen reader.
   .chat-hub-header-bar .chat-header-actions button {
     @include btn-base;
     @include btn-icon;
@@ -1055,12 +1061,13 @@ textarea.chatMsg {
     width: 32px;
     min-width: 32px;
     height: 32px;
+    padding: 0;
     justify-content: center;
-  }
+    overflow: hidden;
 
-  .chat-hub-header-bar .chat-header-actions button i {
-    margin: 0;
-    font-size: var(--t-body);
+    .btn-text { display: none; }
+
+    > .icon { margin: 0; }
   }
 }
 
@@ -1241,8 +1248,13 @@ textarea.chatMsg {
 }
 
 @media (max-width: $bp-mobile), (max-width: $bp-narrow) and (max-height: $bp-short) {
+  //  A sheet over the conversation, not a column beside it. At 50vw the
+  //  participants took half the screen and left the messages in a strip too
+  //  narrow to read -- which is what it looked like on a real phone. Full
+  //  width, dismissed with the close button in its own title bar.
   .chat-hub-conversation-layout.show-participants .chat-hub-rightbar {
-    width: min(50vw, 200px);
+    width: 100%;
+    border-left: 0;
 
     .rightbar-title {
       padding: 0.6rem 0.75rem;

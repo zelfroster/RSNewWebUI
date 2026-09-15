@@ -156,6 +156,10 @@
     font-size: var(--t-body);
     font-weight: var(--w-body);
     color: var(--ink-body);
+    //  "Operating mode: No Anonymous..." is longer than the label column at
+    //  every width, and ran over the control beside it.
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .nw-mode-group,
