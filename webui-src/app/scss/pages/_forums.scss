@@ -7,27 +7,6 @@
   animation: fadein 0.5s;
 }
 
-.forum-thread-view {
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-/* A thread's own header: date, title, author. */
-.post-header {
-  margin: var(--s3) 0;
-
-  .date { color: var(--ink-dim); font-size: var(--t-row); }
-  .title { margin: var(--s1) 0; font-size: var(--t-h3); font-weight: var(--w-state); }
-  .author { color: var(--ink-body); font-style: italic; }
-}
-
-.forum-thread-view .actions {
-  display: flex;
-  gap: var(--s2);
-  margin-bottom: var(--s4);
-}
-
 /* The line shown when a forum has no threads, or a search matched none. */
 .forum-threads__empty {
   padding: var(--s5);
@@ -67,84 +46,143 @@
   }
 }
 
-/* subject */
-table.forums th:nth-child(1) {
-  width: 50%;
-  text-align: start;
-}
-/* subject */
-table.forums td:nth-child(1) {
-  text-align: start;
-  /* Truncate text with '...' */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-table.forums tr:hover {
-  background-color: var(--ground);
-  cursor: pointer;
-}
-
-table.forums tr.hidden {
-  display: none;
-}
+/* The forum list is the shared group table -- see components/_group-table. */
 
 #forumdetails {
   position: relative;
   padding: 10px;
 }
 
-.forum-detail-navigation {
-  display: flex;
-  align-items: center;
-}
-
-.forum-mobile-search,
 .forum-mobile-actions,
 .forum-mobile-create {
   display: none;
 }
 
-.forum-detail-heading {
-  margin-top: .75rem;
+/* Everything the core knows about the forum, in a dropdown off the Details
+ * button. Label on the left, value on the right, like the desktop client. */
+.forum-details {
+  position: relative;
 
-  h3 { margin: 0; }
+  &__toggle {
+    @include btn-base;
+
+    display: inline-flex;
+    //  A <button> gets border-box from the browser and a <summary> does not,
+    //  so without this the same min-height came out 8px taller.
+    box-sizing: border-box;
+    list-style: none;
+    user-select: none;
+    cursor: pointer;
+  }
+
+  &__toggle::-webkit-details-marker { display: none; }
+
+  &[open] &__toggle {
+    border-color: var(--select-edge);
+    background: var(--select-soft);
+    color: var(--brand-deep);
+  }
+
+  &__panel {
+    @include tip-surface;
+
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + var(--s1));
+    right: 0;
+    width: min(26rem, calc(100vw - var(--s5)));
+    padding: var(--s3);
+    text-align: left;
+    white-space: normal;
+  }
+
+  &__name {
+    margin: 0 0 var(--s3);
+    color: var(--ink);
+    font-size: var(--t-h3);
+  }
+
+  &__fields {
+    display: grid;
+    /* The label column takes its width from the longest label, and the value
+     * column takes the rest. */
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: var(--s2) var(--s3);
+    margin: 0;
+  }
+
+  &__field {
+    display: contents;
+
+    dt {
+      color: var(--ink-dim);
+      font-size: var(--t-meta);
+    }
+
+    dd {
+      margin: 0;
+      color: var(--ink);
+      font-size: var(--t-meta);
+      overflow-wrap: anywhere;
+    }
+  }
 }
 
-.forum-detail-default-thumbnail {
+// -----------------------------------------------------------------------------
+// The split: threads on top, the post you picked below. Reading a second thread
+// is one click, where it used to be two page changes.
+// -----------------------------------------------------------------------------
+.widget.forums-detail-widget {
   display: flex;
-  flex: 0 0 6rem;
-  align-items: center;
-  justify-content: center;
-  width: 6rem;
-  height: 6rem;
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  background: linear-gradient(135deg, var(--select-faint), var(--select-soft));
-  color: var(--brand);
-  box-sizing: border-box;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
 
-  .icon { width: 44px; height: 44px; }
+/* Row one is the forum: where you came from, what it is, what you can do to it.
+ * The rule under it separates that from the threads. */
+.page-head.forum-detail-head {
+  margin-bottom: var(--s3);
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--line-soft);
+
+  //  One line. A forum description can run for a paragraph.
+  .page-head__lead {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .forum-threads {
-  margin-top: 1rem;
+  display: flex;
+  flex: 1 1 45%;
+  flex-direction: column;
+  min-height: 0;
 
+  /* Row two is the threads: the label, then the filter beside it, then the one
+   * action, hard right. */
   &__heading {
+    flex: none;
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    gap: 1rem;
-    padding-bottom: .35rem;
+    gap: var(--s3);
+    padding-bottom: var(--s2);
   }
 
-  &__heading h3 { margin: 0; }
+  &__search {
+    flex: 0 1 18rem;
+    min-width: 0;
+  }
+
+  &__create {
+    margin-left: auto;
+  }
 
   &__create {
     display: inline-flex;
     align-items: center;
-    gap: .35rem;
+    gap: var(--s1);
   }
 }
 
@@ -156,12 +194,104 @@ table.forums tr.hidden {
   background: gray;
 }
 
+/* The thread list scrolls inside the top half; the reading pane below stays
+ * put. Without a selection it takes the whole pane. */
+.threads-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+
+/* The post you picked. It gets the larger share: reading is the job here, the
+ * list above is only how you got to it. */
+.forum-reader {
+  display: flex;
+  flex: 1 1 55%;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: var(--s3);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line);
+
+  &__bar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--s2) var(--s3);
+    padding-bottom: var(--s2);
+  }
+
+  &__nav {
+    display: flex;
+    gap: var(--s1);
+  }
+
+  &__date {
+    color: var(--ink);
+    font-size: var(--t-meta);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__author {
+    color: var(--ink-dim);
+    font-size: var(--t-meta);
+  }
+
+  //  Pushed to the far end of the bar, where the page header keeps its actions.
+  &__actions {
+    display: flex;
+    gap: var(--s2);
+    margin-left: auto;
+  }
+
+  &__title {
+    flex: none;
+    margin: 0 0 var(--s2);
+    color: var(--ink);
+    font-size: var(--t-h3);
+  }
+
+  &__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  &__empty {
+    color: var(--ink-dim);
+  }
+}
+
+/* Replies sit indented under their parent, not as separate threads. */
 table.threads {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
+
+  //  Sticky because the list scrolls under it now.
+  .forum-thread-head th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: var(--s2);
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-dim);
+    font-size: var(--t-label);
+    font-weight: var(--w-label);
+    text-align: left;
+  }
+
+  //  "Title" sits over the titles, not over the chevrons: the same cell
+  //  padding, plus the toggle's box and the gap after it.
+  th.forum-thread-row__cell {
+    padding-left: calc(var(--s2) + var(--s5) + var(--s2));
+  }
 
   tr.forum-thread-row {
-    border-bottom: 1px solid var(--sunken);
+    border-bottom: 1px solid var(--line-soft);
     cursor: pointer;
     transition: background-color .15s ease;
 
@@ -169,68 +299,154 @@ table.threads {
       background-color: var(--ground);
     }
 
-    &.forum-thread-row--unread {
-      background-color: var(--select-faint);
+    //  Weight carries unread, not a band across the row. The band is what
+    //  marks the row you are reading, and two blues fought each other.
+    &.forum-thread-row--unread .forum-thread-row__title {
+      font-weight: var(--w-state);
+      color: var(--ink);
+    }
+
+    //  Last, so the row you are reading wins over the unread tint.
+    &.forum-thread-row--selected,
+    &.forum-thread-row--selected:hover {
+      background-color: var(--select);
 
       .forum-thread-row__title {
-        font-weight: var(--w-state);
         color: var(--brand-deep);
+        font-weight: var(--w-state);
       }
     }
   }
 
+  //  A dense list. --s1 top and bottom keeps a 14px line comfortable without
+  //  turning 98 threads into a page and a half of scrolling.
+  //
+  //  text-align because the base table stylesheet centres cells, which left
+  //  every value out of line with the header above it.
+  td {
+    padding: var(--s1) var(--s2);
+    font-size: var(--t-row);
+    text-align: left;
+    vertical-align: middle;
+    word-wrap: break-word;
+  }
+
   .forum-thread-row__cell {
-    padding: .65rem .5rem;
-    text-align: left !important;
+    min-width: 0;
+    text-align: left;
+  }
+
+  //  The flex box, inside the cell. --depth is set per row; one step of indent
+  //  per level of answer.
+  .forum-thread-row__inner {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    min-width: 0;
+    padding-left: calc(var(--depth, 0) * var(--s5));
+  }
+
+  /* The spacer is exactly the chevron's box, so a thread with answers and one
+   * without start their titles at the same place. */
+  .forum-thread-row__toggle,
+  .forum-thread-row__toggle-spacer {
+    flex: 0 0 var(--s5);
+    width: var(--s5);
+    height: var(--s5);
+  }
+
+  .forum-thread-row__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--ink-dim);
+    box-shadow: none;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--sunken);
+      color: var(--ink);
+    }
   }
 
   .forum-thread-row__title {
-    font-size: var(--t-h3);
-    font-weight: var(--w-label);
+    min-width: 0;
+    overflow: hidden;
     color: var(--ink);
-    margin-bottom: .25rem;
-    word-break: break-word;
-    line-height: 1.3;
-  }
-
-  .forum-thread-row__meta {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: .35rem;
-    font-size: var(--t-meta);
-    color: var(--ink-dim);
-  }
-
-  .forum-thread-row__author {
-    font-style: normal;
-    color: var(--ink-body);
     font-weight: var(--w-label);
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .forum-thread-row__bullet {
-    color: var(--line);
+  /* What a collapsed branch is hiding. */
+  .forum-thread-row__replies {
+    flex: none;
+    color: var(--ink-dim);
     font-size: var(--t-label);
   }
 
-  .forum-thread-row__date {
-    color: var(--ink-faint);
+  .forum-thread-row__unread {
+    width: 4.5rem;
   }
 
-  td {
-    word-wrap: break-word;
+  .forum-thread-row__badge {
+    display: inline-block;
+    min-width: var(--s5);
+    padding: 0 var(--s2);
+    border-radius: var(--r-full);
+    background: var(--select);
+    color: var(--brand-deep);
+    font-size: var(--t-micro);
+    font-weight: var(--w-state);
+    line-height: calc(var(--s4) + var(--s1));
+    text-align: center;
+  }
+
+  .forum-thread-row__date {
+    width: 11rem;
+    color: var(--ink-dim);
+    font-size: var(--t-meta);
+    white-space: nowrap;
+  }
+
+  .forum-thread-row__author {
+    width: 12rem;
+    color: var(--ink-body);
+  }
+
+  .forum-thread-row__by {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    min-width: 0;
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    //  The avatar is a fixed mark beside the name, never a thing that shrinks
+    //  when the name is long.
+    > .jdenticon-avatar,
+    > .defaultAvatar,
+    > img.avatar {
+      flex: 0 0 20px;
+      margin-right: 0;
+    }
   }
 }
 
 @media (max-width: 700px) {
-  .tab-content:has(.forums-detail-widget),
-  .tab-content:has(.forums-thread-widget) {
+  .tab-content:has(.forums-detail-widget) {
     position: relative;
   }
 
   .widget.forums-detail-widget {
-    display: flex;
-    flex-direction: column;
     row-gap: 4px;
 
     .forum-subscription--subscribed,
@@ -244,39 +460,24 @@ table.threads {
     }
   }
 
-  .forum-detail-navigation {
-    justify-content: space-between;
-    gap: .5rem;
-  }
-
-  a.forum-back[title='Back'] {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    flex-shrink: 0;
-    border-radius: var(--r-full);
-    background: var(--select-soft);
-    color: var(--brand-deep);
-    font-size: var(--t-h3);
-    text-decoration: none;
-    cursor: pointer;
-
-    &:hover {
-      background: var(--select);
+  /* No room for two panes. The list is the page, and picking a post replaces
+   * it; the back arrow in the header brings the list back. */
+  .forums-detail-widget.has-selection {
+    .forum-threads__heading,
+    .threads-scroll {
+      display: none;
     }
 
-    .fa-arrow-left::before {
-      content: "\f053";
+    .forum-reader {
+      flex: 1 1 auto;
+      margin-top: 0;
+      padding-top: 0;
+      border-top: 0;
     }
   }
 
-  .forum-mobile-search {
-    flex: 1;
-    min-width: 0;
-    margin-right: 44px;
+  .forum-threads__search {
+    flex: 1 1 auto;
   }
 
   .forum-mobile-create {
@@ -300,10 +501,7 @@ table.threads {
 
   .forum-mobile-actions {
     display: block;
-    position: absolute;
-    top: 0;
-    right: .5rem;
-    z-index: 1001;
+    position: relative;
 
     summary {
       display: flex;
@@ -324,10 +522,16 @@ table.threads {
     }
 
     &__items {
+      //  As wide as its widest label, never wider than the screen. `width:
+      //  100%` on the buttons cannot do this on its own: btn-base sets
+      //  `white-space: nowrap`, so a button's label is a floor the panel never
+      //  hears about, and the button then sticks out of the panel and off the
+      //  side of the phone. Boards and channels carry the same menu.
       position: absolute;
       right: 0;
       top: 100%;
-      min-width: 10rem;
+      z-index: 10;
+      width: min(17rem, calc(100vw - 1.5rem));
       padding: .35rem;
       background: var(--surface);
       border: 1px solid var(--line);
@@ -338,8 +542,17 @@ table.threads {
     &__items button {
       @include btn-base;
 
-      width: 100%;
+      //  `display: flex` with no width, not `width: 100%`: a block-level box
+      //  fills its container's content edge whatever box-sizing says, where
+      //  `100%` plus btn-base's horizontal padding measured 16px wider than
+      //  the panel and hung off the side of the phone.
+      display: flex;
+      width: auto;
+      min-width: 0;
+      //  A label too long for the panel wraps rather than widening it.
+      white-space: normal;
       min-height: 44px;
+      justify-content: flex-start;
       text-align: left;
     }
 
@@ -348,61 +561,56 @@ table.threads {
     }
   }
 
-  .forum-detail-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: .5rem;
-    margin-top: .25rem;
-    margin-bottom: .25rem;
 
-    h3 {
-      font-size: var(--t-h3);
-      margin: 0;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-  }
-
-
+  /* Four columns do not fit a phone. Two lines instead: title and unread
+   * count, then author and date. Indent step shrinks to keep titles readable. */
   table.threads {
-    .forum-thread-row__cell {
-      padding: .4rem .25rem;
-      text-align: left !important;
+    table-layout: auto;
+
+    thead { display: none; }
+
+    tr.forum-thread-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      padding: var(--s1) 0;
+    }
+
+    td {
+      padding: var(--s1) var(--s2);
+    }
+
+    .forum-thread-row__inner {
+      padding-left: calc(var(--depth, 0) * var(--s3));
+      gap: var(--s1);
     }
 
     .forum-thread-row__title {
       font-size: var(--t-body);
-      margin-bottom: .15rem;
     }
 
-    .forum-thread-row__meta {
+    .forum-thread-row__unread,
+    .forum-thread-row__date,
+    .forum-thread-row__author {
+      width: auto;
+    }
+
+    .forum-thread-row__author {
+      grid-column: 1;
+      grid-row: 2;
+      padding-left: calc(var(--s2) + var(--s5));
       font-size: var(--t-label);
-      gap: .25rem;
+    }
+
+    .forum-thread-row__date {
+      grid-column: 2;
+      grid-row: 2;
+      font-size: var(--t-label);
+      text-align: right;
     }
   }
 
 }
-table.threadreply th:nth-child(2) {
-  width: 50%;
-}
-table.threadreply th:nth-child(1) {
-  width: 2%;
-}
-table.threadreply td:nth-child(2) {
-  width: 50%;
-  text-align: start;
-}
-table.threadreply td {
-  word-wrap: break-word;
-}
-table.threadreply tr:hover {
-  background-color: var(--ground);
-  cursor: pointer;
-}
-
 /* Create Forum uses the same compact form language as Create Channel. */
 .create-forum-form {
   display: grid !important;
@@ -600,11 +808,3 @@ table.threadreply tr:hover {
   .forum-thread-composer__actions button { width: 100%; }
 }
 
-/* The shared media-item hides its description at phone widths (_media.scss,
- * !important) -- right for channel/board media grids, wrong for the forum
- * header, whose description belongs on the phone header. */
-@media (max-width: 768px) {
-  .forum-detail-heading + .media-item .media-item__desc {
-    display: block !important;
-  }
-}

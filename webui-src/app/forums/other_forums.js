@@ -1,10 +1,25 @@
 const m = require('mithril');
+const util = require('forums/forums_util');
 
-//  The page header names this tab; there is no list behind it yet.
 const Layout = () => {
   return {
-    view: () => m('.empty', m('b', 'No forums to show')),
+    view: (v) => [
+      m('.widget__body', [
+        m(
+          util.ForumTable,
+          m('tbody', [
+            v.attrs.list.map((forum) =>
+              m(util.DisplayForumsFromList, {
+                id: forum.mGroupId,
+                details: forum,
+                category: 'Other',
+              })
+            ),
+          ])
+        ),
+      ]),
+    ],
   };
 };
 
-module.exports = Layout();
+module.exports = Layout;

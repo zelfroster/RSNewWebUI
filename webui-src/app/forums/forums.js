@@ -8,6 +8,8 @@ const icon = require('icon');
 
 const getForums = {
   All: [],
+  //  Keyed by tab name, and the "All Forums" tab is called Other.
+  Other: [],
   Popular: [],
   Subscribed: [],
   MyForums: [],
@@ -15,6 +17,7 @@ const getForums = {
     const res = await rs.rsJsonApiRequest('/rsgxsforums/getForumsSummaries');
     if (res && res.body && res.body.forums) {
       getForums.All = res.body.forums;
+      getForums.Other = getForums.All;
       getForums.Popular = getForums.All;
       getForums.Subscribed = getForums.All.filter(
         (forum) =>
@@ -24,7 +27,26 @@ const getForums = {
       getForums.MyForums = getForums.All.filter(
         (forum) => forum.mSubscribeFlags === util.GROUP_MY_FORUM
       );
+      await getForums.loadDescriptions();
     }
+  },
+
+  //  Summaries carry no description. getForumsInfo takes a list, so the whole
+  //  page costs one request -- asking per forum cost one per row.
+  async loadDescriptions() {
+    const ids = getForums.All.map((forum) => forum.mGroupId).filter(Boolean);
+    if (ids.length === 0) return;
+    const res = await rs.rsJsonApiRequest('/rsgxsforums/getForumsInfo', { forumIds: ids });
+    const infos = res && res.body && res.body.forumsInfo;
+    if (!Array.isArray(infos)) return;
+    const byId = {};
+    infos.forEach((info) => {
+      if (info && info.mMeta) byId[info.mMeta.mGroupId] = info.mDescription;
+    });
+    getForums.All.forEach((forum) => {
+      forum.description = byId[forum.mGroupId] || '';
+    });
+    m.redraw();
   },
 };
 //  Group lists change on the scale of a conversation, not of a frame.
@@ -94,14 +116,19 @@ const Layout = () => {
       });
     },
     view: (vnode) => {
-      const isForumDetail = vnode.attrs.pathInfo.mGroupId && !vnode.attrs.pathInfo.mMsgId;
-      const isThreadDetail = vnode.attrs.pathInfo.mGroupId && vnode.attrs.pathInfo.mMsgId;
+      const forumId = vnode.attrs.pathInfo.mGroupId;
+      const msgId = vnode.attrs.pathInfo.mMsgId;
       return m('.widget', {
-        class: isForumDetail ? 'forums-detail-widget' : isThreadDetail ? 'forums-thread-widget' : '',
+        //  A selected post is a state of the forum page, not a page of its own.
+        //  The phone stylesheet uses it to show the reader in place of the list.
+        class: [
+          forumId ? 'forums-detail-widget' : '',
+          msgId ? 'has-selection' : '',
+        ].filter(Boolean).join(' '),
       }, [
-        //  Only the list views get a page header: a forum and a thread carry
-        //  their own heading, which is the forum's name rather than the tab's.
-        !isForumDetail && !isThreadDetail && m(widget.PageHead, {
+        //  Only the list views get a page header: a forum carries its own
+        //  heading, which is the forum's name rather than the tab's.
+        !forumId && m(widget.PageHead, {
           title: pageTitles[vnode.attrs.pathInfo.tab] || 'Forums',
           actions: [
             vnode.attrs.pathInfo.tab === 'MyForums' &&
@@ -113,20 +140,16 @@ const Layout = () => {
             }),
           ],
         }),
-        Object.prototype.hasOwnProperty.call(vnode.attrs.pathInfo, 'mMsgId') // thread's view
-          ? m(viewUtil.ThreadView, {
-            msgId: vnode.attrs.pathInfo.mMsgId,
-            forumId: vnode.attrs.pathInfo.mGroupId,
+        forumId
+          ? m(viewUtil.ForumView, {
+            id: forumId,
+            msgId,
+            onSubscriptionChange: getForums.load,
           })
-          : Object.prototype.hasOwnProperty.call(vnode.attrs.pathInfo, 'mGroupId') // Forum's view
-            ? m(viewUtil.ForumView, {
-              id: vnode.attrs.pathInfo.mGroupId,
-              onSubscriptionChange: getForums.load,
-            })
-            : m(sections[vnode.attrs.pathInfo.tab], {
-              list: getForums[vnode.attrs.pathInfo.tab],
-              onCreateForum: createForum,
-            }),
+          : m(sections[vnode.attrs.pathInfo.tab], {
+            list: getForums[vnode.attrs.pathInfo.tab],
+            onCreateForum: createForum,
+          }),
       ]);
     },
   };
