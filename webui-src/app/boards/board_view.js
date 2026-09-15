@@ -4,6 +4,7 @@ const boardKanban = require('boards/board_kanban');
 const rs = require('rswebui');
 const peopleUtil = require('people/people_util');
 const icon = require('icon');
+const widget = require('widgets');
 const { CommentsSection } = require('comments');
 const toast = require('toast');
 const Data = util.Data;
@@ -391,47 +392,44 @@ function BoardView() {
     });
 
       return [
-        m('.board-detail-navigation', [
-        m(
-          'a.board-back[title=Back][aria-label=Back]',
-          {
-            onclick: () =>
-              m.route.set('/boards/:tab', {
-                tab: m.route.param().tab || 'Subscribed',
-              }),
+        m(widget.PageHead, {
+          class: 'board-detail-head',
+          back: {
+            label: 'Back to boards',
+            onclick: () => m.route.set('/boards/:tab', {
+              tab: m.route.param().tab || 'Subscribed',
+            }),
           },
-          icon('arrow-left')
-        ),
-          m('details.board-mobile-actions', {
-            onkeydown: (event) => {
-              if (event.key === 'Escape') {
-                event.currentTarget.open = false;
-                event.currentTarget.querySelector('summary').focus();
-              }
-            },
-            onfocusout: (event) => {
-              if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
-            },
-          }, [
-            m('summary[aria-label=Board actions][title=Board actions]', icon('ellipsis-v')),
-            m('.board-mobile-actions__items', m('button.is-danger[type=button]', {
-              onclick: (event) => {
-                const menu = event.currentTarget.closest('details');
-                menu.open = false;
-                menu.querySelector('summary').focus();
-                return toggleSubscription();
+          title: bname,
+          actions: [
+            m('button.board-subscription-button.is-primary',
+              {
+                class: bsubscribed ? 'board-subscription-button--subscribed' : '',
+                onclick: toggleSubscription,
+              }, [icon('bookmark'), bsubscribed ? 'Subscribed' : 'Subscribe']),
+            m('details.board-mobile-actions', {
+              onkeydown: (event) => {
+                if (event.key === 'Escape') {
+                  event.currentTarget.open = false;
+                  event.currentTarget.querySelector('summary').focus();
+                }
               },
-            }, [icon('bookmark'), bsubscribed ? 'Unsubscribe' : 'Subscribe'])),
-          ]),
-        ]),
-        m('.widget__heading', [
-          m('h3', bname),
-          m('button.board-subscription-button.is-primary',
-            {
-              class: bsubscribed ? 'board-subscription-button--subscribed' : '',
-              onclick: toggleSubscription,
-            }, [icon('bookmark'), bsubscribed ? 'Subscribed' : 'Subscribe']),
-        ]),
+              onfocusout: (event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
+              },
+            }, [
+              m('summary[aria-label=Board actions][title=Board actions]', icon('ellipsis-v')),
+              m('.board-mobile-actions__items', m('button.is-danger[type=button]', {
+                onclick: (event) => {
+                  const menu = event.currentTarget.closest('details');
+                  menu.open = false;
+                  menu.querySelector('summary').focus();
+                  return toggleSubscription();
+                },
+              }, [icon('bookmark'), bsubscribed ? 'Unsubscribe' : 'Subscribe'])),
+            ]),
+          ],
+        }),
         m('.widget__body', [
           m('.media-item', [
             m('.media-item__details', [
@@ -619,18 +617,16 @@ function PostView() {
         boardKanban.openPhotoModal([{ title, image: imgSrc, thumbnail: imgSrc, post: p }], 0);
 
       return [
-        m(
-          'a.board-back[title=Back][aria-label=Back]',
-          {
-            onclick: () =>
-              m.route.set('/boards/:tab/:mGroupId', {
-                tab: m.route.param().tab || 'Subscribed',
-                mGroupId: forumId,
-              }),
+        m(widget.PageHead, {
+          back: {
+            label: 'Back to board',
+            onclick: () => m.route.set('/boards/:tab/:mGroupId', {
+              tab: m.route.param().tab || 'Subscribed',
+              mGroupId: forumId,
+            }),
           },
-          icon('arrow-left')
-        ),
-        m('.widget__heading', m('h3', title)),
+          title,
+        }),
         m('.widget__body', [
           imgSrc
             ? m(

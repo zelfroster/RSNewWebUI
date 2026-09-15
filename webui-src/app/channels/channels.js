@@ -35,9 +35,28 @@ const getChannels = {
         (channel) => channel.mSubscribeFlags === util.GROUP_MY_CHANNEL
       );
       m.redraw();
+      await getChannels.loadDescriptions();
     } catch (error) {
       console.warn('Failed to load channel summaries', error);
     }
+  },
+
+  //  Summaries carry no description. getChannelsInfo takes a list, so the whole
+  //  page costs one request -- asking per channel cost one per row.
+  async loadDescriptions() {
+    const ids = getChannels.All.map((channel) => channel.mGroupId).filter(Boolean);
+    if (ids.length === 0) return;
+    const res = await rs.rsJsonApiRequest('/rsgxschannels/getChannelsInfo', { chanIds: ids });
+    const infos = res && res.body && res.body.channelsInfo;
+    if (!Array.isArray(infos)) return;
+    const byId = {};
+    infos.forEach((info) => {
+      if (info && info.mMeta) byId[info.mMeta.mGroupId] = info.mDescription;
+    });
+    getChannels.All.forEach((channel) => {
+      channel.description = byId[channel.mGroupId] || '';
+    });
+    m.redraw();
   },
 };
 
@@ -117,7 +136,7 @@ const Layout = () => {
             m('button.channels-create-button.is-primary', {
               onclick: createChannel,
             }, [icon('plus'), 'Create Channel']),
-            m(util.SearchBar, { category: 'channels' }),
+            m(util.SearchBar, { category: 'channels', list: getChannels.All }),
           ],
         }),
         Object.prototype.hasOwnProperty.call(vnode.attrs.pathInfo, 'mMsgId') // posts

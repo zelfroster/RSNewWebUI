@@ -1018,7 +1018,6 @@ button.board-card__vote-btn,
   .board-card__notes-btn i { margin: 0; }
 }
 
-.board-detail-navigation { display: flex; align-items: center; justify-content: space-between; }
 .board-mobile-actions { display: none; }
 
 .board-toolbar__create-post { display: none; }
@@ -1046,23 +1045,13 @@ button.board-card__vote-btn,
   .widget.boards-detail-widget {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 36px auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     row-gap: 4px;
 
-    > .board-detail-navigation {
-      grid-area: 1 / 1;
-      width: 44px;
-    }
+    > .board-detail-head { grid-area: 1 / 1; }
     > .widget__body { grid-area: 2 / 1; min-height: 0; }
 
     .posts { margin-top: 1px; }
-
-    .board-mobile-actions {
-      position: absolute;
-      top: 0;
-      right: .5rem;
-      z-index: 1001;
-    }
   }
 }
 
@@ -1079,37 +1068,29 @@ button.board-card__vote-btn,
     summary::-webkit-details-marker { display: none; }
     summary:focus-visible { outline: 2px solid var(--brand-deep); }
     &__items {
+      //  As wide as its widest label, never wider than the screen. `width:
+      //  100%` on the buttons cannot do this on its own: btn-base sets
+      //  `white-space: nowrap`, so a button's label is a floor the panel never
+      //  hears about, and the button then sticks out of the panel and off the
+      //  side of the phone. Boards and channels carry the same menu.
       position: absolute; right: 0; top: 100%; z-index: 10;
-      min-width: 10rem; padding: .35rem; background: var(--surface);
+      width: min(17rem, calc(100vw - 1.5rem));
+      padding: .35rem; background: var(--surface);
       border: 1px solid var(--line); border-radius: var(--r-md);
       box-shadow: var(--lift);
     }
     &__items button {
-      width: 100%; min-height: 44px; text-align: left;
+      //  `display: flex` with no width, not `width: 100%`: a block-level box
+      //  fills its container's content edge whatever box-sizing says, where
+      //  `100%` plus btn-base's horizontal padding measured 16px wider than
+      //  the panel and hung off the side of the phone.
+      display: flex; width: auto; min-height: 44px;
+      justify-content: flex-start; text-align: left;
+      min-width: 0; white-space: normal;
       background: var(--surface); color: var(--ink); box-shadow: none;
     }
     &__items button:hover { background: var(--sunken); }
   }
-}
-
-
-@media (max-width: 700px) {
-  a.board-back[title='Back'] {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    flex-shrink: 0;
-    border-radius: var(--r-full);
-    background-color: var(--select-soft);
-    color: var(--brand-deep);
-    font-size: var(--t-h3);
-    text-decoration: none;
-  }
-  a.board-back[title='Back']:hover { background-color: var(--select); }
-  .board-back .fa-arrow-left::before { content: "\f053"; }
 }
 
 //  The post image is a click target for the lightbox, so it gets a stage

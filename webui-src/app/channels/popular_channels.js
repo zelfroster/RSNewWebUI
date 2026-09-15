@@ -9,14 +9,9 @@ const Layout = () => {
           util.ChannelTable,
           m('tbody', [
             v.attrs.list.map((channel) =>
-              m(util.ChannelSummary, {
-                details: channel,
-                category: 'Popular',
-              })
-            ),
-            v.attrs.list.map((channel) =>
               m(util.DisplayChannelsFromList, {
                 id: channel.mGroupId,
+                details: channel,
                 category: 'Popular',
               })
             ),

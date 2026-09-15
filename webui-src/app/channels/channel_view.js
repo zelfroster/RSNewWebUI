@@ -45,10 +45,9 @@ function channelPostCommentCount(postId, post) {
   return Number(count ?? meta.mComments ?? meta.mCommentCount ?? 0) || 0;
 }
 
-//  Shown in place of a post's image when it has none. `hidden` is the platform
-//  attribute, which the base sheet already hides.
+//  Shown in place of a post's image when it has none, or when it failed.
 const ChannelFallbackThumbnail = () => ({
-  view: (vnode) => m('.channel-post__placeholder', { hidden: vnode.attrs.hidden }, [
+  view: (vnode) => m('.channel-post__placeholder', [
     icon('image'),
     m('span', (vnode.attrs.title || 'Post').trim().slice(0, 1).toUpperCase()),
     m('small', 'No image'),
@@ -430,6 +429,7 @@ const CONTENT_CACHE_MS = 60000;
 const ChannelView = () => {
   let cname = '';
   let cimage = '';
+  let cdescription = '';
   let cauthor = '';
   let csubscribed = {};
   let mychannel = false;
@@ -437,6 +437,9 @@ const ChannelView = () => {
   let plist = {};
   let createDate = {};
   let lastActivity = {};
+  //  Posts whose thumbnail failed to load, so the card can draw the fallback
+  //  instead of both at once.
+  const brokenThumbnails = new Set();
   const toggleSubscription = async (attrs) => {
     const res = await rs.rsJsonApiRequest('/rsgxschannels/subscribeToChannel', {
       channelId: attrs.id, subscribe: !csubscribed,
@@ -448,26 +451,35 @@ const ChannelView = () => {
       m.redraw();
     }
   };
+  //  Read on every render, not once in oninit. The summaries arrive after this
+  //  component mounts -- reliably so on a phone, where the request is slower
+  //  than the route change -- and oninit never runs again, so a channel opened
+  //  from a link or a reload kept the empty values it was born with.
+  function readChannel(id) {
+    const c = Data.DisplayChannels[id];
+    if (!c) return;
+    cname = c.name;
+    cimage = c.image;
+    cdescription = c.description;
+    //  Same as forum_view: userMap stores objects, username() is the only
+    //  accessor that yields a string.
+    if (Number(c.author) === 0) {
+      cauthor = 'No Contact Author';
+    } else if (c.author) {
+      cauthor = rs.userList.username(c.author);
+    } else {
+      cauthor = 'Unknown';
+    }
+    csubscribed = c.isSubscribed;
+    mychannel = c.mychannel;
+    cposts = c.posts;
+    createDate = c.created;
+    lastActivity = c.activity;
+  }
+
   return {
     oninit: (v) => {
-      if (Data.DisplayChannels[v.attrs.id]) {
-        cname = Data.DisplayChannels[v.attrs.id].name;
-        cimage = Data.DisplayChannels[v.attrs.id].image;
-        //  Same as forum_view: userMap stores objects, username() is the only
-        //  accessor that yields a string.
-        if (Number(Data.DisplayChannels[v.attrs.id].author) === 0) {
-          cauthor = 'No Contact Author';
-        } else if (Data.DisplayChannels[v.attrs.id].author) {
-          cauthor = rs.userList.username(Data.DisplayChannels[v.attrs.id].author);
-        } else {
-          cauthor = 'Unknown';
-        }
-        csubscribed = Data.DisplayChannels[v.attrs.id].isSubscribed;
-        mychannel = Data.DisplayChannels[v.attrs.id].mychannel;
-        cposts = Data.DisplayChannels[v.attrs.id].posts;
-        createDate = Data.DisplayChannels[v.attrs.id].created;
-        lastActivity = Data.DisplayChannels[v.attrs.id].activity;
-      }
+      readChannel(v.attrs.id);
       if (Data.Posts[v.attrs.id]) {
         plist = Data.Posts[v.attrs.id];
       }
@@ -482,66 +494,63 @@ const ChannelView = () => {
       if (Object.keys(plist).length > 0 && Date.now() - lastLoad < CONTENT_CACHE_MS) return;
       contentLoadedAt[v.attrs.id] = Date.now();
       util.updatedisplaychannels(v.attrs.id).then(() => {
+        //  Again, because the first call ran before the channel's own details
+        //  had arrived and left the header blank.
+        readChannel(v.attrs.id);
         plist = Data.Posts[v.attrs.id] || {};
         m.redraw();
       });
     },
     view: (v) => [
-      m('.channel-detail-navigation', [
-      m(
-        'a.channel-back[title=Back][aria-label=Back]',
-        {
-          onclick: () =>
-            m.route.set('/channels/:tab', {
-              tab: m.route.param().tab,
-            }),
+      m(widget.PageHead, {
+        class: 'channel-detail-head',
+        back: {
+          label: 'Back to channels',
+          onclick: () => m.route.set('/channels/:tab', { tab: m.route.param().tab }),
         },
-        icon('arrow-left')
-      ),
-        m('.channel-mobile-search', [
-          m(util.SearchBar, { category: 'posts', channelId: v.attrs.id }),
-        ]),
-        m('details.channel-mobile-actions', {
-          onkeydown: (event) => {
-            if (event.key === 'Escape') {
-              event.currentTarget.open = false;
-              event.currentTarget.querySelector('summary').focus();
-            }
-          },
-          onfocusout: (event) => {
-            if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
-          },
-        }, [
-          m('summary[aria-label=Channel actions][title=Channel actions]', icon('ellipsis-v')),
-          m('.channel-mobile-actions__items', m('button.is-danger[type=button]', {
-            onclick: (event) => {
-              const menu = event.currentTarget.closest('details');
-              menu.open = false;
-              menu.querySelector('summary').focus();
-              return toggleSubscription(v.attrs);
-            },
-          }, [icon('bookmark'), csubscribed ? 'Unsubscribe' : 'Subscribe'])),
-        ]),
-      ]),
-      m('.widget__heading', [
-        m('h3', cname),
+        title: cname,
+        actions: [
+          m('.channel-mobile-search', [
+            m(util.SearchBar, { category: 'posts', channelId: v.attrs.id }),
+          ]),
           mychannel && csubscribed && m('button.channel-mobile-create[type=button][title=Add Post][aria-label=Add Post]', {
             onclick: () => widget.popupMessage(
               m(AddPost, { chanId: v.attrs.id }),
               'create-channel-post-modal',
               {
-              title: 'Create Channel Post',
-              lead: 'Add a title, thumbnail, message, and optional attachments.',
-            }
+                title: 'Create Channel Post',
+                lead: 'Add a title, thumbnail, message, and optional attachments.',
+              }
             ),
           }, icon('plus')),
-
-        m('button.is-primary',
-          {
-            class: csubscribed ? 'channel-subscription--subscribed' : '',
-            onclick: () => toggleSubscription(v.attrs),
-          }, [icon('bookmark'), csubscribed ? 'Subscribed' : 'Subscribe']),
-      ]),
+          m('button.is-primary',
+            {
+              class: csubscribed ? 'channel-subscription--subscribed' : '',
+              onclick: () => toggleSubscription(v.attrs),
+            }, [icon('bookmark'), csubscribed ? 'Subscribed' : 'Subscribe']),
+          m('details.channel-mobile-actions', {
+            onkeydown: (event) => {
+              if (event.key === 'Escape') {
+                event.currentTarget.open = false;
+                event.currentTarget.querySelector('summary').focus();
+              }
+            },
+            onfocusout: (event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
+            },
+          }, [
+            m('summary[aria-label=Channel actions][title=Channel actions]', icon('ellipsis-v')),
+            m('.channel-mobile-actions__items', m('button.is-danger[type=button]', {
+              onclick: (event) => {
+                const menu = event.currentTarget.closest('details');
+                menu.open = false;
+                menu.querySelector('summary').focus();
+                return toggleSubscription(v.attrs);
+              },
+            }, [icon('bookmark'), csubscribed ? 'Unsubscribe' : 'Subscribe'])),
+          ]),
+        ],
+      }),
       m('.widget__body', [
         m('.media-item', [
           m('.media-item__details', [
@@ -578,7 +587,7 @@ const ChannelView = () => {
           ]),
           m('.media-item__desc', [
             m('b', 'Description: '),
-            m('span', Data.DisplayChannels[v.attrs.id].description || 'No Description'),
+            m('span', cdescription || 'No Description'),
           ]),
         ]),
         m(
@@ -608,6 +617,7 @@ const ChannelView = () => {
                 channelPostPublishTime(plist[b].post) - channelPostPublishTime(plist[a].post)
               ).map((key) => {
                 const commentCount = channelPostCommentCount(key, plist[key].post);
+                const thumbSrc = channelThumbnailSrc(plist[key].post);
                 //  Keyed: newest-first means every card shifts when a post
                 //  arrives, and an unkeyed list makes mithril reuse DOM by
                 //  position -- the imperative onerror display:none of one
@@ -636,20 +646,17 @@ const ChannelView = () => {
                       icon('comment'),
                       m('span', commentCount),
                     ]),
-                    channelThumbnailSrc(plist[key].post)
-                      ? [
-                          m('img', {
-                            src: channelThumbnailSrc(plist[key].post),
-                            alt: plist[key].post.mMeta.mMsgName || 'Post thumbnail',
-                            onerror: (e) => {
-                              e.target.style.display = 'none';
-                              if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
-                            },
-                          }),
-                          m(ChannelFallbackThumbnail, { title: plist[key].post.mMeta.mMsgName, hidden: true }),
-                        ]
+                    thumbSrc && !brokenThumbnails.has(key)
+                      ? m('img.posts-container-card__image', {
+                        src: thumbSrc,
+                        alt: plist[key].post.mMeta.mMsgName || 'Post thumbnail',
+                        onerror: () => {
+                          brokenThumbnails.add(key);
+                          m.redraw();
+                        },
+                      })
                       : m(ChannelFallbackThumbnail, { title: plist[key].post.mMeta.mMsgName }),
-                    m('p', plist[key].post.mMeta.mMsgName),
+                    m('p.posts-container-card__title', plist[key].post.mMeta.mMsgName),
                   ]
                 );
               })
@@ -714,18 +721,16 @@ const PostView = () => {
       const hasEmbeddedImage = /<img\b|data:image\//i.test(String(message));
       const hasLongMessage = messageText.length > 280 || hasEmbeddedImage;
       return [
-      m(
-        'a.channel-back[title=Back][aria-label=Back]',
-        {
-          onclick: () =>
-            m.route.set('/channels/:tab/:mGroupId', {
-              tab: m.route.param().tab,
-              mGroupId: m.route.param().mGroupId,
-            }),
+      m(widget.PageHead, {
+        back: {
+          label: 'Back to channel',
+          onclick: () => m.route.set('/channels/:tab/:mGroupId', {
+            tab: m.route.param().tab,
+            mGroupId: m.route.param().mGroupId,
+          }),
         },
-        icon('arrow-left')
-      ),
-      m('.widget__heading', m('h3', post.mMeta.mMsgName)),
+        title: post.mMeta.mMsgName,
+      }),
       m('.widget__body', [
         message ? m('.post-description', [
           m('.post-description__text', {

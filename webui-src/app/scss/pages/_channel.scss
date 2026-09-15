@@ -22,28 +22,6 @@
 }
 
 /* subject */
-table.channels {
-  & th:nth-child(1) {
-    width: 50%;
-    text-align: start;
-  }
-  /* subject */
-  & td:nth-child(1) {
-    text-align: start;
-    /* Truncate text with '...' */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  & tr:hover {
-    background-color: var(--ground);
-    cursor: pointer;
-  }
-  & tr.hidden {
-    display: none;
-  }
-}
-
 /* subject */
 table {
   padding: 0.5rem;
@@ -366,13 +344,46 @@ table {
 .posts-container-card {
   position: relative;
   display: flex;
+  //  Stated, not inherited: the title belongs under the picture, and the card
+  //  used to draw the image and its fallback as siblings side by side.
+  flex-direction: column;
   align-self: start;
   height: 240px;
   min-height: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+  background: var(--surface);
   overflow: hidden;
+  box-sizing: border-box;
+
+  &:hover {
+    border-color: var(--line-hover);
+  }
 }
-.posts-container-card > img,
-.posts-container-card > .channel-post__placeholder { min-height: 0; }
+
+/* The picture takes the space the title does not. `cover` because a channel
+ * thumbnail is any shape, and a letterboxed grid reads as broken. */
+.posts-container-card__image,
+.posts-container-card > .channel-post__placeholder {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  object-fit: cover;
+}
+
+/* One line, always the same height, so every card in the row ends level. */
+.posts-container-card__title {
+  flex: none;
+  margin: 0;
+  padding: var(--s2);
+  overflow: hidden;
+  border-top: 1px solid var(--line-soft);
+  color: var(--ink);
+  font-size: var(--t-meta);
+  font-weight: var(--w-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .channel-post-comment-badge {
   position: absolute;
@@ -474,7 +485,6 @@ table {
 }
 
 
-.channel-detail-navigation { display: flex; align-items: center; }
 .channel-mobile-search, .channel-mobile-actions, .channel-mobile-create { display: none; }
 
 @media (max-width: 700px) {
@@ -482,7 +492,7 @@ table {
   .widget.channels-detail-widget {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 36px auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     row-gap: 4px;
     > .widget__body { min-height: 0; }
     .channel-subscription--subscribed,
@@ -490,14 +500,6 @@ table {
     .posts { margin-top: 9px; min-height: 0; }
     .posts-container { padding: .5rem; }
   }
-  .channel-detail-navigation { justify-content: space-between; gap: .5rem; }
-  a.channel-back[title='Back'] {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 36px; height: 36px; padding: 0; flex-shrink: 0;
-    border-radius: var(--r-full); background: var(--select-soft); color: var(--brand-deep); font-size: var(--t-h3);
-  }
-  a.channel-back[title='Back']:hover { background: var(--select); }
-  .channel-back .fa-arrow-left::before { content: "\f053"; }
   .channel-mobile-search {
     display: flex; align-items: center; justify-content: flex-end;
     gap: .5rem; min-width: 0; flex: 1;
@@ -508,7 +510,7 @@ table {
     width: 32px; height: 32px; padding: 0; font-size: var(--t-row);
   }
   .channel-mobile-actions {
-    display: block; position: absolute; top: 0; right: .5rem; z-index: 1001;
+    display: block; position: relative;
     summary {
       display: flex; align-items: center; justify-content: center;
       width: 44px; height: 44px; cursor: pointer; list-style: none;
@@ -516,12 +518,24 @@ table {
     summary::-webkit-details-marker { display: none; }
     summary:focus-visible { outline: 2px solid var(--brand-deep); }
     &__items {
-      position: absolute; right: 0; top: 100%; min-width: 10rem;
+      //  As wide as its widest label, never wider than the screen. `width:
+      //  100%` on the buttons cannot do this on its own: btn-base sets
+      //  `white-space: nowrap`, so a button's label is a floor the panel never
+      //  hears about, and the button then sticks out of the panel and off the
+      //  side of the phone. Boards and channels carry the same menu.
+      position: absolute; right: 0; top: 100%; z-index: 10;
+      width: min(17rem, calc(100vw - 1.5rem));
       padding: .35rem; background: var(--surface); border: 1px solid var(--line);
       border-radius: var(--r-md); box-shadow: var(--lift);
     }
     &__items button {
-      width: 100%; min-height: 44px; text-align: left;
+      //  `display: flex` with no width, not `width: 100%`: a block-level box
+      //  fills its container's content edge whatever box-sizing says, where
+      //  `100%` plus btn-base's horizontal padding measured 16px wider than
+      //  the panel and hung off the side of the phone.
+      display: flex; width: auto; min-height: 44px;
+      justify-content: flex-start; text-align: left;
+      min-width: 0; white-space: normal;
       background: var(--surface); color: var(--ink); box-shadow: none;
     }
     &__items button:hover { background: var(--sunken); }

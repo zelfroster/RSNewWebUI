@@ -2,6 +2,7 @@ const m = require('mithril');
 const rs = require('rswebui');
 const icon = require('icon');
 const widget = require('widgets');
+const { formatTimestamp } = rs;
 
 // rstypes.h:96
 const GROUP_SUBSCRIBE_ADMIN = 0x01; //  means: you have the admin key for this group
@@ -181,16 +182,15 @@ async function updatedisplaychannels(keyid, details, loadContent = true) {
 }
 const DisplayChannelsFromList = () => {
   return {
-    oninit: (v) => {},
-    view: (v) =>
-      m(
-        'tr',
+    //  Straight from the summary the list arrived with. Asking the core about
+    //  each channel one at a time held the whole list up.
+    view: (v) => {
+      const summary = v.attrs.details || {};
+      return m(
+        'tr.group-row',
         {
           key: v.attrs.id,
-          class:
-            Data.DisplayChannels[v.attrs.id] && Data.DisplayChannels[v.attrs.id].isSearched
-              ? ''
-              : 'hidden',
+          class: summary.isSearched === false ? 'hidden' : '',
           onclick: () => {
             m.route.set('/channels/:tab/:mGroupId', {
               tab: v.attrs.category,
@@ -198,20 +198,21 @@ const DisplayChannelsFromList = () => {
             });
           },
         },
-        [m('td', Data.DisplayChannels[v.attrs.id] ? Data.DisplayChannels[v.attrs.id].name : '')]
-      ),
-  };
-};
-
-const ChannelSummary = () => {
-  let keyid = {};
-  return {
-    oninit: (v) => {
-      keyid = v.attrs.details.mGroupId;
-      updatedisplaychannels(keyid, undefined, false);
+        [
+          m('td.group-row__name', m('.group-row__inner', [
+            m('.group-row__mark', icon('tv')),
+            m('.group-row__text', [
+              m('span.group-row__title', summary.mGroupName || ''),
+              summary.description
+                ? m('span.group-row__desc', summary.description)
+                : null,
+            ]),
+          ])),
+          m('td.group-row__posts', summary.mVisibleMsgCount || 0),
+          m('td.group-row__activity', formatTimestamp(summary.mLastPost)),
+        ]
+      );
     },
-
-    view: (v) => {},
   };
 };
 
@@ -250,7 +251,14 @@ const FilesTable = () => {
 
 const ChannelTable = () => {
   return {
-    view: (v) => m('table.channels', [m('tr', [m('th', 'Channel Name')]), v.children]),
+    view: (v) => m('table.group-table.channels', [
+      m('thead', m('tr', [
+        m('th.group-row__name', 'Channel'),
+        m('th.group-row__posts', 'Posts'),
+        m('th.group-row__activity', 'Last post'),
+      ])),
+      v.children,
+    ]),
   };
 };
 const SearchBar = () => {
@@ -265,14 +273,12 @@ const SearchBar = () => {
         oninput: (e) => {
           searchString = e.target.value.toLowerCase();
           if (v.attrs.category.localeCompare('channels') === 0) {
-            // for channels
-            for (const hash in Data.DisplayChannels) {
-              if (Data.DisplayChannels[hash].name.toLowerCase().indexOf(searchString) > -1) {
-                Data.DisplayChannels[hash].isSearched = true;
-              } else {
-                Data.DisplayChannels[hash].isSearched = false;
-              }
-            }
+            //  Flags the summaries the list is holding. Every tab's array is
+            //  built by filtering the same objects, so one pass covers all.
+            (v.attrs.list || []).forEach((channel) => {
+              channel.isSearched =
+                !searchString || (channel.mGroupName || '').toLowerCase().includes(searchString);
+            });
           } else {
             for (const hash in Data.Posts[v.attrs.channelId]) {
               // for posts
@@ -295,7 +301,6 @@ const SearchBar = () => {
 module.exports = {
   Data,
   SearchBar,
-  ChannelSummary,
   DisplayChannelsFromList,
   updatedisplaychannels,
   ChannelTable,
