@@ -643,7 +643,9 @@ const ChannelView = () => {
                             alt: plist[key].post.mMeta.mMsgName || 'Post thumbnail',
                             onerror: (e) => {
                               e.target.style.display = 'none';
-                              if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                              //  The placeholder is hidden by the attribute, not
+                              //  by an inline style: clear the attribute.
+                              if (e.target.nextSibling) e.target.nextSibling.hidden = false;
                             },
                           }),
                           m(ChannelFallbackThumbnail, { title: plist[key].post.mMeta.mMsgName, hidden: true }),

@@ -131,6 +131,25 @@ async function updateContentBatch(contentIds, channelid) {
   await updateContentBatch(contentIds.slice(middle), channelid);
 }
 
+//  The channel list filter, module level for the same reason as the flags it
+//  sets: the search field is unmounted inside a channel and recreated on the
+//  way back, and must come back showing the filter that is still applied.
+let channelsSearchString = '';
+const matchesChannelsSearch = (name) => (name || '').toLowerCase().indexOf(channelsSearchString) > -1;
+function applyChannelsSearch(value) {
+  channelsSearchString = (value || '').toLowerCase();
+  for (const hash in Data.DisplayChannels) {
+    Data.DisplayChannels[hash].isSearched = matchesChannelsSearch(Data.DisplayChannels[hash].name);
+  }
+}
+function applyPostsSearch(channelId, value) {
+  const query = (value || '').toLowerCase();
+  for (const hash in Data.Posts[channelId]) {
+    const name = Data.Posts[channelId][hash].post.mMeta.mMsgName || '';
+    Data.Posts[channelId][hash].isSearched = name.toLowerCase().indexOf(query) > -1;
+  }
+}
+
 async function updatedisplaychannels(keyid, details, loadContent = true) {
   const res1 = await rs.rsJsonApiRequest('/rsgxschannels/getChannelsInfo', {
     chanIds: [keyid],
@@ -142,7 +161,7 @@ async function updatedisplaychannels(keyid, details, loadContent = true) {
   Data.DisplayChannels[keyid] = {
     // struct for a channel
     name: details.mMeta.mGroupName,
-    isSearched: true,
+    isSearched: matchesChannelsSearch(details.mMeta.mGroupName),
     description: details.mDescription,
     image: details.mImage,
     author: details.mMeta.mAuthorId,
@@ -255,40 +274,24 @@ const ChannelTable = () => {
 };
 const SearchBar = () => {
   // same search bar is used for both channels and posts
-  let searchString = '';
+  let postsSearchString = '';
   return {
-    view: (v) =>
-      m(widget.SearchField, {
-        placeholder:
-          v.attrs.category.localeCompare('channels') === 0 ? 'Search channels' : 'Search posts',
-        value: searchString,
-        oninput: (e) => {
-          searchString = e.target.value.toLowerCase();
-          if (v.attrs.category.localeCompare('channels') === 0) {
-            // for channels
-            for (const hash in Data.DisplayChannels) {
-              if (Data.DisplayChannels[hash].name.toLowerCase().indexOf(searchString) > -1) {
-                Data.DisplayChannels[hash].isSearched = true;
-              } else {
-                Data.DisplayChannels[hash].isSearched = false;
-              }
-            }
-          } else {
-            for (const hash in Data.Posts[v.attrs.channelId]) {
-              // for posts
-              if (
-                Data.Posts[v.attrs.channelId][hash].post.mMeta.mMsgName
-                  .toLowerCase()
-                  .indexOf(searchString) > -1
-              ) {
-                Data.Posts[v.attrs.channelId][hash].isSearched = true;
-              } else {
-                Data.Posts[v.attrs.channelId][hash].isSearched = false;
-              }
-            }
-          }
-        },
-      }),
+    view: (v) => {
+      const forChannels = v.attrs.category.localeCompare('channels') === 0;
+      const apply = (value) => {
+        if (forChannels) applyChannelsSearch(value);
+        else {
+          postsSearchString = value;
+          applyPostsSearch(v.attrs.channelId, value);
+        }
+      };
+      return m(widget.SearchField, {
+        placeholder: forChannels ? 'Search channels' : 'Search posts',
+        value: forChannels ? channelsSearchString : postsSearchString,
+        onclear: () => apply(''),
+        oninput: (e) => apply(e.target.value),
+      });
+    },
   };
 };
 

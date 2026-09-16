@@ -293,7 +293,13 @@ const ChatTab = () => {
           onSend: () => sendDistantChatMessage(),
           onAttachFile: attachFileLink,
           onImage: attachImage,
-          onRemoveAttachment: () => { State.attachedImage = null; },
+          onRemoveAttachment: () => {
+            State.attachedImage = null;
+            //  The session keeps its own copy, restored by selectChatContact:
+            //  clear it too, or the picture comes back after a contact switch.
+            const session = getDistantChatSession(State.selectedId);
+            if (session) session.attachedImage = null;
+          },
           onViewAttachment: openChatImageViewer,
         }),
 

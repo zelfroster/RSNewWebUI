@@ -20,7 +20,8 @@ const getChannels = {
         console.warn('Channels summaries response did not include channels', res && res.body);
         return;
       }
-      getChannels.All = channels;
+      //  Most popular first, the order the All tab has always shown.
+      getChannels.All = [...channels].sort((a, b) => (b.mPop || 0) - (a.mPop || 0));
       getChannels.Subscribed = channels.filter(
       (channel) =>
         channel.mSubscribeFlags === util.GROUP_SUBSCRIBE_SUBSCRIBED ||
@@ -44,9 +45,13 @@ const getChannels = {
 //  Group lists change on the scale of a conversation, not of a frame.
 const CHANNEL_LIST_REFRESH_MS = 30000;
 
+//  Popular and Other are the two halves of the NON-subscribed list: neither
+//  shows a channel once the user subscribes to it. All is the full list, and
+//  the only place a subscribed channel can be found again outside Subscribed.
 const sections = {
   MyChannels: require('channels/my_channels'),
   Subscribed: require('channels/subscribed_channels'),
+  All: require('channels/all_channels'),
   Popular: require('channels/popular_channels'),
   Other: require('channels/other_channels'),
 };
@@ -54,23 +59,26 @@ const sections = {
 const navLabels = {
   MyChannels: 'My Channels',
   Subscribed: 'Subscribed',
+  All: 'All Channels',
   Popular: 'Popular',
-  Other: 'All Channels',
+  Other: 'Other',
 };
 
 //  The page title, which can say more than the rail label beside it.
 const pageTitles = {
   MyChannels: 'My Channels',
   Subscribed: 'Subscribed Channels',
+  All: 'All Channels',
   Popular: 'Popular Channels',
-  Other: 'All Channels',
+  Other: 'Other Channels',
 };
 
 const navIcons = {
   MyChannels: 'tv',
   Subscribed: 'bookmark',
+  All: 'globe',
   Popular: 'fire',
-  Other: 'globe',
+  Other: 'layer-group',
 };
 
 const Layout = () => {
