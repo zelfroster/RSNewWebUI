@@ -60,6 +60,7 @@ const MAP = {
   'envelope-open-text': 'envelope-open',
   eraser: 'eraser',
   'exclamation-triangle': 'warning',
+  'external-link-alt': 'arrow-square-out',
   expand: 'corners-out',
   eye: 'eye',
   file: 'file',

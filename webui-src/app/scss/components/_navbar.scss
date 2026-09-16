@@ -538,14 +538,16 @@
     }
   }
 
+  //  The header went from dark to --chrome; the pill's colours were written
+  //  for the dark one (near-white text over a white tint) and read 1.2:1.
   .mobile-status-trigger {
     display: flex;
     align-items: center;
     gap: 0.4rem;
     padding: 0.3rem 0.5rem;
-    color: var(--line-soft);
-    background: rgba(255, 255, 255, 0.08);
-    border: 0;
+    color: var(--ink-dim);
+    background: var(--sunken);
+    border: 1px solid var(--line);
     border-radius: var(--r-full);
     box-shadow: none;
     font-size: var(--t-label);
@@ -555,7 +557,7 @@
       width: 0.65rem;
       height: 0.65rem;
       flex: 0 0 auto;
-      border: 2px solid rgba(255, 255, 255, 0.7);
+      border: 2px solid var(--surface);
       border-radius: var(--r-full);
     }
 

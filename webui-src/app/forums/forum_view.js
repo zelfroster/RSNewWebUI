@@ -672,7 +672,8 @@ const ForumView = () => {
             },
           }, [
             m('summary[aria-label=Forum actions][title=Forum actions]', icon('ellipsis-v')),
-            m('.forum-mobile-actions__items', m('button.is-danger[type=button]', {
+            m('.forum-mobile-actions__items', m('button[type=button]', {
+              class: fsubscribed ? 'is-danger' : '',
               onclick: (event) => {
                 const menu = event.currentTarget.closest('details');
                 menu.open = false;

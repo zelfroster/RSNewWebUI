@@ -414,7 +414,8 @@ function BoardView() {
             },
           }, [
             m('summary[aria-label=Board actions][title=Board actions]', icon('ellipsis-v')),
-            m('.board-mobile-actions__items', m('button.is-danger[type=button]', {
+            m('.board-mobile-actions__items', m('button[type=button]', {
+              class: bsubscribed ? 'is-danger' : '',
               onclick: (event) => {
                 const menu = event.currentTarget.closest('details');
                 menu.open = false;
