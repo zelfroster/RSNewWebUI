@@ -264,6 +264,9 @@ function createchannel() {
               if (res.body.retval) {
                 await util.updatedisplaychannels(res.body.channelId, undefined, false);
                 if (vnode.attrs.onCreated) await vnode.attrs.onCreated();
+                //  The form is done: close it before the toast, or a second
+                //  click would create the channel again.
+                widget.closePopupMessage();
                 m.redraw();
               }
               res.body.retval === false
@@ -409,9 +412,12 @@ const AddPost = () => {
                   files: pfiles, // does not work for now
                   thumbnail: { mData: { base64: pthumbnail } },
                 });
-                res.body.retval === false
-                  ? toast.error(res.body.errorMessage)
-                  : toast.success('Post added successfully');
+                if (res.body.retval === false) {
+                  toast.error(res.body.errorMessage);
+                } else {
+                  widget.closePopupMessage();
+                  toast.success('Post added successfully');
+                }
                 util.updatedisplaychannels(vnode.attrs.chanId);
                 m.redraw();
               }

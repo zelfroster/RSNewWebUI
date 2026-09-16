@@ -25,7 +25,10 @@ const SignedIdentity = () => {
         //  Cleared here, not only in .catch(): a refused passphrase is a
         //  valid answer, and the button would otherwise stay on "Creating…".
         submitting = false;
-        if (data && data.retval) await peopleUtil.refreshOwnIds(previousIds);
+        if (data && data.retval) {
+          await peopleUtil.refreshOwnIds(previousIds);
+          widget.closePopupMessage();
+        }
         const message = data && data.retval
           ? 'Successfully created identity.'
           : 'Could not create the identity. Check your profile password and try again.';
@@ -145,7 +148,10 @@ const CreateIdentity = () => {
                   pseudonimous,
                 },
                 async (data) => {
-                  if (data.retval) await peopleUtil.refreshOwnIds();
+                  if (data.retval) {
+                    await peopleUtil.refreshOwnIds();
+                    widget.closePopupMessage();
+                  }
                   const message = data.retval
                     ? 'Successfully created identity.'
                     : 'An error occured while creating identity.';
@@ -195,6 +201,7 @@ const SignedEditIdentity = () => {
                 pgpPassword: passphrase,
               },
               (data) => {
+                if (data && data.retval) widget.closePopupMessage();
                 const message = data && data.retval
                   ? 'Identity updated.'
                   : 'Could not update the identity. Check your profile password and try again.';
@@ -291,6 +298,7 @@ const EditIdentity = () => {
                     pseudonimous: true,
                   },
                   (data) => {
+                    if (data && data.retval) widget.closePopupMessage();
                     const message = data && data.retval
                       ? 'Identity updated.'
                       : 'Could not update the identity.';
