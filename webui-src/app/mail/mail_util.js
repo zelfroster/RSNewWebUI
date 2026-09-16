@@ -1,5 +1,6 @@
 const m = require('mithril');
 const rs = require('rswebui');
+const mailApi = require('mail/mail_api');
 const util = require('files/files_util');
 const widget = require('widgets');
 const peopleUtil = require('people/people_util');
@@ -62,20 +63,30 @@ function isDraftMessage(msgflags) {
 //  Sender details were only ever fetched from the message's own `from`, so a
 //  draft the core left without one showed a jdenticon while the same identity
 //  showed its real photo in the list.
+//  A failed answer (the core unreachable, an HTTP error) is remembered for a
+//  while: the request's own redraw calls this again from the view, and with
+//  nothing cached the next redraw asked again, once per unresolved address,
+//  for as long as the core stayed away.
+const GXS_DETAIL_RETRY_MS = 60000;
 const GxsDetailFetches = new Set();
+const GxsDetailMisses = {};
 function identityDetails(addr) {
   if (!addr) return null;
   if (MailGxsDetailsCache[addr]) return MailGxsDetailsCache[addr];
-  if (!GxsDetailFetches.has(addr)) {
-    GxsDetailFetches.add(addr);
-    rs.rsJsonApiRequest('/rsIdentity/getIdDetails', { id: addr }, (data) => {
-      GxsDetailFetches.delete(addr);
-      if (!data || !data.details) return;
-      MailGxsDetailsCache[addr] = data.details;
-      UserNicknamesCache[addr] = data.details.mNickname || '';
-      m.redraw();
-    });
-  }
+  if (GxsDetailFetches.has(addr)) return null;
+  if (GxsDetailMisses[addr] && Date.now() - GxsDetailMisses[addr] < GXS_DETAIL_RETRY_MS) return null;
+  GxsDetailFetches.add(addr);
+  rs.rsJsonApiRequest('/rsIdentity/getIdDetails', { id: addr }, (data) => {
+    GxsDetailFetches.delete(addr);
+    if (!data || !data.details) {
+      GxsDetailMisses[addr] = Date.now();
+      return;
+    }
+    delete GxsDetailMisses[addr];
+    MailGxsDetailsCache[addr] = data.details;
+    UserNicknamesCache[addr] = data.details.mNickname || '';
+    m.redraw();
+  });
   return null;
 }
 
@@ -83,12 +94,16 @@ function identityDetails(addr) {
 //  flight, and keeps doing so for an identity this node has never seen -- so
 //  the To: chips were 32-character hex strings. That is not a name: shorten it
 //  so the row stays readable, and keep the full id in the title.
+//  The bulk identity list is asked first: when it knows the name there is
+//  nothing to fetch. The per-identity details are only for the names it does
+//  not have.
 function identityLabel(addr) {
   if (!addr) return '';
-  const name = UserNicknamesCache[addr]
-    || identityDetails(addr)?.mNickname
-    || rs.userList.username(addr);
-  if (!name || name === addr) return `${addr.slice(0, 8)}…`;
+  const known = rs.userList.username(addr);
+  const name = (known && known !== addr ? known : '')
+    || UserNicknamesCache[addr]
+    || identityDetails(addr)?.mNickname;
+  if (!name) return `${addr.slice(0, 8)}…`;
   return name;
 }
 
@@ -183,9 +198,11 @@ function getTagDetails(tagId) {
 }
 
 function loadTagTypes() {
+  //  The callback form hands the response BODY to the callback; reading
+  //  res.body here found nothing, and every tag showed as "Tag <id>" in grey.
   rs.rsJsonApiRequest('/rsMail/getMessageTagTypes', {}, (res) => {
-    if (res && res.body && res.body.tags && res.body.tags.types) {
-      res.body.tags.types.forEach((tag) => {
+    if (res && res.tags && res.tags.types) {
+      res.tags.types.forEach((tag) => {
         tagTypesCache[tag.key] = {
           name: tag.value.first,
           color: `#${tag.value.second.toString(16).padStart(6, '0')}`,
@@ -287,19 +304,9 @@ const MessageSummary = () => {
           }
         })
         .then(() => {
-          if (details?.from?._addr_string) {
-            rs.rsJsonApiRequest(
-              '/rsIdentity/getIdDetails',
-              { id: details.from._addr_string },
-              (data) => {
-                fromUserInfo = data.details;
-                if (fromUserInfo) {
-                  UserNicknamesCache[details.from._addr_string] = fromUserInfo.mNickname || '';
-                  MailGxsDetailsCache[details.from._addr_string] = fromUserInfo;
-                }
-              }
-            );
-          }
+          //  Through the shared fetch, which the view also goes through: one
+          //  request per identity, not one per row plus one per redraw.
+          if (details?.from?._addr_string) identityDetails(details.from._addr_string);
         });
     },
     //  The reading pane's star/spam toggles refresh the summaries; the row's
@@ -352,6 +359,7 @@ const MessageSummary = () => {
       const fromAddr = isDraft
         ? draftSenderId(details.from?._addr_string)
         : details.from?._addr_string;
+      if (details.from?._addr_string) fromUserInfo = MailGxsDetailsCache[details.from._addr_string];
       const fromName = fromUserInfo && Number(fromUserInfo.mId) !== 0
         ? fromUserInfo.mNickname
         : (fromAddr && identityLabel(fromAddr)) || '[Unknown]';
@@ -483,30 +491,12 @@ const MessageCard = () => {
             if (v.attrs.msg && v.attrs.msg.msgflags !== undefined) {
               MessageCache[msgId].msgflags = v.attrs.msg.msgflags;
             }
-            const senderAddr = res.body.msg.from?._addr_string;
-            if (senderAddr && !MailGxsDetailsCache[senderAddr]) {
-              rs.rsJsonApiRequest('/rsIdentity/getIdDetails', { id: senderAddr }, (d) => {
-                if (d && d.details) {
-                  MailGxsDetailsCache[senderAddr] = d.details;
-                  UserNicknamesCache[senderAddr] = d.details.mNickname || '';
-                  m.redraw();
-                }
-              });
-            }
+            identityDetails(res.body.msg.from?._addr_string);
             m.redraw();
           }
         });
       } else {
-        const senderAddr = MessageCache[msgId]?.from?._addr_string || v.attrs.msg.from?._addr_string;
-        if (senderAddr && !MailGxsDetailsCache[senderAddr]) {
-          rs.rsJsonApiRequest('/rsIdentity/getIdDetails', { id: senderAddr }, (d) => {
-            if (d && d.details) {
-              MailGxsDetailsCache[senderAddr] = d.details;
-              UserNicknamesCache[senderAddr] = d.details.mNickname || '';
-              m.redraw();
-            }
-          });
-        }
+        identityDetails(MessageCache[msgId]?.from?._addr_string || v.attrs.msg.from?._addr_string);
       }
     },
     view: (v) => {
@@ -865,9 +855,8 @@ const MessageView = () => {
   }
 
   function deleteMail(vnode) {
-    rs.rsJsonApiRequest('/rsMail/MessageToTrash', { msgId: MailData.msgId, bTrash: true });
-    rs.rsJsonApiRequest('/rsMail/MessageDelete', { msgId: MailData.msgId }).then((res) => {
-      toast.result(Boolean(res.body.retval), 'Mail deleted.', 'Could not delete the mail.');
+    mailApi.deleteMessage(MailData.msgId).then((ok) => {
+      toast.result(ok, 'Mail deleted.', 'Could not delete the mail.');
       if (vnode.attrs.onDeleted) {
         vnode.attrs.onDeleted(MailData.msgId);
       } else {
