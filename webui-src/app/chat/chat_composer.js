@@ -30,6 +30,8 @@ const { autoResizeTextarea } = require('chat/chat_state');
 
 const ChatComposer = () => {
   let emojiOpen = false;
+  let attachOpen = false;
+  let imageInput;
 
   //  Enter sends. Ctrl/Cmd+Enter and Shift+Enter insert a newline, which is
   //  what every chat client does and what people's fingers expect.
@@ -82,19 +84,16 @@ const ChatComposer = () => {
       ]),
 
       m('.chat-composer', [
-        //  Attach, image, emoji -- one order, here and in the mail composer.
-        attrs.onAttachFile && tool(attrs, {
-          icon: 'paperclip',
+        attrs.onAttachFile && m('button.chat-composer__tool.chat-composer__desktop-attach.chat-hub-action-btn[type=button]', {
+          disabled: attrs.disabled,
           title: 'Attach file link',
+          'aria-label': 'Attach file link',
           onclick: attrs.onAttachFile,
-        }),
+        }, icon('paperclip')),
 
-        //  A <label>, because it wraps the file input -- and `disabled` is not
-        //  a valid attribute on one, so the browser ignores it. aria-disabled
-        //  is what btn-base already styles, and the stylesheet takes the
-        //  pointer events off it so it cannot be hovered or clicked either.
-        attrs.onImage && m('label.chat-composer__tool.chat-hub-action-btn', {
+        attrs.onImage && m('label.chat-composer__tool.chat-composer__desktop-attach.chat-hub-action-btn', {
           title: 'Send image',
+          'aria-label': 'Send image',
           'aria-disabled': attrs.disabled ? 'true' : undefined,
         }, [
           icon('image'),
@@ -104,6 +103,49 @@ const ChatComposer = () => {
               const file = e.target.files && e.target.files[0];
               if (file) attrs.onImage(file);
               e.target.value = '';
+            },
+          }),
+        ]),
+
+        (attrs.onAttachFile || attrs.onImage) && m('.menu.menu--start.menu--up.chat-composer__attach', {
+          onkeydown: (event) => {
+            if (event.key !== 'Escape') return;
+            attachOpen = false;
+            event.currentTarget.querySelector('.chat-composer__attach-button').focus();
+          },
+          onfocusout: (event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) attachOpen = false;
+          },
+        }, [
+          m('button.menu__button.chat-composer__tool.chat-composer__attach-button.chat-hub-action-btn[type=button]', {
+            title: 'Attach',
+            'aria-label': 'Attach',
+            'aria-haspopup': 'menu',
+            'aria-expanded': String(attachOpen),
+            disabled: attrs.disabled,
+            onclick: () => { attachOpen = !attachOpen; },
+          }, icon('paperclip')),
+          attachOpen && m('.menu__panel[role=menu]', [
+            attrs.onImage && m('button.menu__item[type=button][role=menuitem]', {
+              disabled: attrs.disabled,
+              onclick: () => imageInput.click(),
+            }, [icon('image'), m('span', 'Photo')]),
+            attrs.onAttachFile && m('button.menu__item[type=button][role=menuitem]', {
+              disabled: attrs.disabled,
+              onclick: () => {
+                attachOpen = false;
+                attrs.onAttachFile();
+              },
+            }, [icon('paperclip'), m('span', 'File link')]),
+          ]),
+          attrs.onImage && m('input.menu__file[type=file][accept=image/*]', {
+            disabled: attrs.disabled,
+            oncreate: ({ dom }) => { imageInput = dom; },
+            onchange: (event) => {
+              const file = event.target.files && event.target.files[0];
+              if (file) attrs.onImage(file);
+              event.target.value = '';
+              attachOpen = false;
             },
           }),
         ]),

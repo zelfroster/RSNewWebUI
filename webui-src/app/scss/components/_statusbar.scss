@@ -49,6 +49,13 @@
     height: 14px;
     background-color: var(--line);
   }
+
+  &-version {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    cursor: default;
+  }
 }
 
 /* == Status tones =========================================================

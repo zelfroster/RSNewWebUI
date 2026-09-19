@@ -407,27 +407,17 @@ function BoardView() {
                 class: bsubscribed ? 'board-subscription-button--subscribed' : '',
                 onclick: toggleSubscription,
               }, [icon('bookmark'), bsubscribed ? 'Subscribed' : 'Subscribe']),
-            m('details.board-mobile-actions', {
-              onkeydown: (event) => {
-                if (event.key === 'Escape') {
-                  event.currentTarget.open = false;
-                  event.currentTarget.querySelector('summary').focus();
-                }
-              },
-              onfocusout: (event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
-              },
-            }, [
-              m('summary[aria-label=Board actions][title=Board actions]', icon('ellipsis-v')),
-              m('.board-mobile-actions__items', m('button.is-danger[type=button]', {
-                onclick: (event) => {
-                  const menu = event.currentTarget.closest('details');
-                  menu.open = false;
-                  menu.querySelector('summary').focus();
-                  return toggleSubscription();
-                },
-              }, [icon('bookmark'), bsubscribed ? 'Unsubscribe' : 'Subscribe'])),
-            ]),
+            m(widget.Menu, {
+              class: 'board-mobile-actions',
+              mark: 'ellipsis-v',
+              title: 'Board actions',
+              items: [{
+                label: bsubscribed ? 'Unsubscribe' : 'Subscribe',
+                icon: 'bookmark',
+                danger: bsubscribed,
+                onclick: toggleSubscription,
+              }],
+            }),
           ],
         }),
         m('.widget__body', [

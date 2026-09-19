@@ -6,6 +6,7 @@ const people = require('people/people');
 const chatState = require('chat/chat_state');
 const { ChatComposer } = require('chat/chat_composer');
 const HistoryBrowserModal = require('people/people_history');
+const renderIdentityTooltip = require('mail/mail_identity_tooltip');
 const icon = require('icon');
 const toast = require('toast');
 
@@ -158,47 +159,8 @@ function loadOlderWhenAtTop(element) {
 
 function renderUserTooltip(gxsId, name) {
   const details = ChatHubState.gxsDetails[gxsId];
-  if (!details) return null;
-
-  const avatar = getSafeAvatar(details);
-  const firstLetter = (name || '?').slice(0, 1).toUpperCase();
-  const votes = details.mReputation
-    ? (details.mReputation.mFriendsPositiveVotes - details.mReputation.mFriendsNegativeVotes)
-    : 0;
-
   const rect = ChatHubState.hoveredUser ? ChatHubState.hoveredUser.rect : null;
-  const tooltipWidth = 280;
-  const tooltipGap = 10;
-  let left = rect ? rect.left - tooltipWidth - tooltipGap : window.innerWidth - tooltipWidth - tooltipGap;
-  if (left < tooltipGap && rect) left = rect.right + tooltipGap;
-  let top = rect ? rect.top : 100;
-  if (top + 160 > window.innerHeight) top = window.innerHeight - 170;
-  if (top < 10) top = 10;
-
-  return m('.user-tooltip', {
-    style: {
-      position: 'fixed',
-      top: `${top}px`,
-      left: `${left}px`,
-      zIndex: 10000,
-    }
-  }, [
-    m('.tooltip-avatar', m(peopleUtil.UserAvatar, { avatar, firstLetter, identityId: gxsId, size: 48, isSquare: true })),
-    m('.tooltip-details', [
-      m('.tooltip-row', [m('span.tooltip-label', 'Identity name:'), m('span.tooltip-value', name)]),
-      m('.tooltip-row', [m('span.tooltip-label', 'Identity Id:'), m('span.tooltip-value.tooltip-id', gxsId)]),
-      details.mPgpId && details.mPgpId !== '0000000000000000' && m('.tooltip-row', [
-        m('span.tooltip-label', 'Node:'),
-        m('span.tooltip-value', `${rs.userList.username(details.mPgpId) || name} [${details.mPgpId}]`)
-      ]),
-      m('.tooltip-row', [
-        m('span.tooltip-label', 'Votes:'),
-        m('span.tooltip-value', {
-          class: votes >= 0 ? 'is-positive' : 'is-negative',
-        }, (votes >= 0 ? '+' : '') + votes)
-      ])
-    ])
-  ]);
+  return renderIdentityTooltip({ details, gxsId, name, rect });
 }
 
 //  Hashing a large file takes minutes, so there is no deadline to enforce here.

@@ -172,6 +172,32 @@
   .board-toolbar__left {
     flex-basis: 100%;
   }
+
+  /* The right group held the view toggle, the pager and the vote identity on
+   * one unshrinkable line, which ran off the side of a phone and left the
+   * whole page scrolling sideways. It wraps and shrinks now. */
+  .board-toolbar__right {
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    justify-content: space-between;
+    width: 100%;
+    min-width: 0;
+  }
+
+  //  Marks only. "Compact View" and "Card View" spelled out are most of the
+  //  row on their own.
+  .board-toolbar__view-toggle .segmented__item span { display: none; }
+
+  .board-toolbar__voter {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .board-toolbar__voter select {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+  }
 }
 
 .board-post-voting {
@@ -1018,7 +1044,7 @@ button.board-card__vote-btn,
   .board-card__notes-btn i { margin: 0; }
 }
 
-.board-mobile-actions { display: none; }
+.board-mobile-actions.menu { display: none; }
 
 .board-toolbar__create-post { display: none; }
 
@@ -1056,41 +1082,9 @@ button.board-card__vote-btn,
 }
 
 @media (max-width: 700px) {
+  //  The overflow menu carries Unsubscribe on a phone, so the header does not.
   .board-subscription-button--subscribed { display: none; }
-  .board-mobile-actions {
-    display: block;
-    position: relative;
-    summary {
-      display: flex; align-items: center; justify-content: center;
-      width: 44px; height: 44px; border-radius: var(--r-md);
-      cursor: pointer; list-style: none;
-    }
-    summary::-webkit-details-marker { display: none; }
-    summary:focus-visible { outline: 2px solid var(--brand-deep); }
-    &__items {
-      //  As wide as its widest label, never wider than the screen. `width:
-      //  100%` on the buttons cannot do this on its own: btn-base sets
-      //  `white-space: nowrap`, so a button's label is a floor the panel never
-      //  hears about, and the button then sticks out of the panel and off the
-      //  side of the phone. Boards and channels carry the same menu.
-      position: absolute; right: 0; top: 100%; z-index: 10;
-      width: min(17rem, calc(100vw - 1.5rem));
-      padding: .35rem; background: var(--surface);
-      border: 1px solid var(--line); border-radius: var(--r-md);
-      box-shadow: var(--lift);
-    }
-    &__items button {
-      //  `display: flex` with no width, not `width: 100%`: a block-level box
-      //  fills its container's content edge whatever box-sizing says, where
-      //  `100%` plus btn-base's horizontal padding measured 16px wider than
-      //  the panel and hung off the side of the phone.
-      display: flex; width: auto; min-height: 44px;
-      justify-content: flex-start; text-align: left;
-      min-width: 0; white-space: normal;
-      background: var(--surface); color: var(--ink); box-shadow: none;
-    }
-    &__items button:hover { background: var(--sunken); }
-  }
+  .board-mobile-actions.menu { display: inline-flex; }
 }
 
 //  The post image is a click target for the lightbox, so it gets a stage

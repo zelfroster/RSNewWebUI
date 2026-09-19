@@ -61,6 +61,80 @@ const BackButton = {
   }, icon('arrow-left')),
 };
 
+/**
+ * A button that opens a short list under it. Native <details>, so it needs no
+ * open/close state of its own and closes on Escape or on focus leaving it.
+ *
+ * attrs:
+ *   label     text on the button; hidden at phone widths, where the mark alone
+ *             has to carry it, so always pass `title` too
+ *   mark      icon name on the button
+ *   title     tooltip and accessible name
+ *   items     [{ label, icon, onclick, onfile, accept, selected, danger }]
+ *   buttonClass extra class on the summary button
+ *   align     'end' pins the panel to the button's right edge (default), 'start'
+ *             to its left
+ *   up        true opens the panel above the button
+ *   class     extra class on the <details>
+ */
+const Menu = {
+  view: ({ attrs }) => m('details.menu', {
+    class: [attrs.class || '', attrs.up ? 'menu--up' : '', `menu--${attrs.align || 'end'}`]
+      .filter(Boolean).join(' '),
+    onkeydown: (event) => {
+      if (event.key !== 'Escape') return;
+      event.currentTarget.open = false;
+      event.currentTarget.querySelector('summary').focus();
+    },
+    onfocusout: (event) => {
+      if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
+    },
+  }, [
+    m('summary.menu__button', {
+      class: attrs.buttonClass,
+      title: attrs.title || attrs.label,
+      'aria-label': attrs.title || attrs.label,
+    }, [
+      attrs.mark ? icon(attrs.mark) : null,
+      attrs.label ? m('span.btn-text', attrs.label) : null,
+      m('span.menu__caret', icon('chevron-down')),
+    ]),
+    m('.menu__panel', (attrs.items || []).map((item) => {
+      const content = [item.icon ? icon(item.icon) : null, m('span', item.label)];
+      if (item.onfile) {
+        return m('label.menu__item', {
+          key: item.label,
+          'aria-disabled': item.disabled ? 'true' : undefined,
+        }, content.concat(m('input.menu__file[type=file]', {
+          accept: item.accept,
+          disabled: item.disabled,
+          onchange: (event) => {
+            const file = event.target.files && event.target.files[0];
+            if (file) item.onfile(file);
+            event.target.value = '';
+            const menu = event.target.closest('details');
+            if (menu) menu.open = false;
+          },
+        })));
+      }
+      return m('button.menu__item[type=button]', {
+        key: item.label,
+        disabled: item.disabled,
+        class: [item.selected ? 'is-selected' : '', item.danger ? 'is-danger' : '']
+          .filter(Boolean).join(' '),
+        onclick: (event) => {
+          const menu = event.currentTarget.closest('details');
+          if (menu) {
+            menu.open = false;
+            menu.querySelector('summary').focus();
+          }
+          item.onclick();
+        },
+      }, content);
+    })),
+  ]),
+};
+
 //  The page header -- see scss/components/_page-head.scss.
 //
 //  attrs: title, lead, mark (an icon name), actions (a vnode or array), class,
@@ -339,6 +413,7 @@ function confirmMessage(options) {
 
 module.exports = {
   BackButton,
+  Menu,
   PageHead,
   Segmented,
   Sidebar,

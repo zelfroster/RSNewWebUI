@@ -278,7 +278,7 @@ const StatusBar = {
       clearInterval(intervalId);
     }
   },
-  view() {
+  view({ attrs }) {
     const isHiddenMode = State.hiddenType === RS_HIDDEN_TYPE_TOR ||
                          State.hiddenType === RS_HIDDEN_TYPE_I2P;
 
@@ -424,6 +424,13 @@ const StatusBar = {
           m('span.statusbar-label', 'Up:\u00a0'),
           m('span.statusbar-value', `${State.rateOut.toFixed(1)} kB/s`),
           m('span.statusbar-total-bytes', `(${formatBytes(State.totalOut)})`),
+        ]),
+        m('.statusbar-divider'),
+        m('.statusbar-version', { title: 'WebUI version' }, [
+          m('span.status-dot', {
+            class: rs.connectionState.status ? 'status-dot--live' : 'status-dot--off',
+          }),
+          attrs.version,
         ]),
       ]),
     ]);

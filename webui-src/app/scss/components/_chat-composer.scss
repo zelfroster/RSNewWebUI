@@ -79,6 +79,23 @@
     flex: none;
   }
 
+  //  Photo and File link behind one paperclip. The menu opens upward: the
+  //  composer sits on the bottom edge of the screen.
+  &.chat-composer &__attach {
+    display: none;
+
+    .menu__panel { min-width: 0; }
+    .menu__item { min-height: var(--control); }
+  }
+
+  &__attach-button {
+    width: var(--control);
+    height: var(--control);
+    min-width: var(--control);
+    min-height: var(--control);
+    padding: 0;
+  }
+
   &__file {
     position: absolute;
     width: 1px;
@@ -94,6 +111,15 @@
 }
 
 @media (max-width: 700px) {
+  .chat-composer .chat-composer__desktop-attach { display: none; }
+  .chat-composer.chat-composer .chat-composer__attach { display: inline-flex; }
+  .chat-composer.chat-composer .chat-composer__attach-button {
+    width: var(--control);
+    height: var(--control);
+    min-width: var(--control);
+    min-height: var(--control);
+  }
+
   //  The field needs the width more than the action needs its label.
   .chat-composer__send .btn-text { display: none; }
 }

@@ -18,13 +18,17 @@
 
   color: var(--ink-dim);
   text-decoration: none;
+  box-shadow: none;
 
   > .icon { transition: transform .15s ease; }
 
   //  The arrow nudges the way it sends you, so the button reads as a
   //  direction and not just another glyph.
   &:hover {
+    border-color: transparent;
+    background: none;
     color: var(--ink);
+    box-shadow: none;
 
     > .icon { transform: translateX(-2px); }
   }

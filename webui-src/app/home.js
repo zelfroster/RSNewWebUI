@@ -40,7 +40,7 @@ const webhelpConfirm = {
           //  it means coming back to a dialog that has nothing left to ask.
           widget.closePopupMessage();
         },
-      }, [icon('external-link-alt'), 'Open link']),
+      }, 'Open link'),
     ]),
   ],
 };

@@ -528,27 +528,17 @@ const ChannelView = () => {
               class: csubscribed ? 'channel-subscription--subscribed' : '',
               onclick: () => toggleSubscription(v.attrs),
             }, [icon('bookmark'), csubscribed ? 'Subscribed' : 'Subscribe']),
-          m('details.channel-mobile-actions', {
-            onkeydown: (event) => {
-              if (event.key === 'Escape') {
-                event.currentTarget.open = false;
-                event.currentTarget.querySelector('summary').focus();
-              }
-            },
-            onfocusout: (event) => {
-              if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
-            },
-          }, [
-            m('summary[aria-label=Channel actions][title=Channel actions]', icon('ellipsis-v')),
-            m('.channel-mobile-actions__items', m('button.is-danger[type=button]', {
-              onclick: (event) => {
-                const menu = event.currentTarget.closest('details');
-                menu.open = false;
-                menu.querySelector('summary').focus();
-                return toggleSubscription(v.attrs);
-              },
-            }, [icon('bookmark'), csubscribed ? 'Unsubscribe' : 'Subscribe'])),
-          ]),
+          m(widget.Menu, {
+            class: 'channel-mobile-actions',
+            mark: 'ellipsis-v',
+            title: 'Channel actions',
+            items: [{
+              label: csubscribed ? 'Unsubscribe' : 'Subscribe',
+              icon: 'bookmark',
+              danger: csubscribed,
+              onclick: () => toggleSubscription(v.attrs),
+            }],
+          }),
         ],
       }),
       m('.widget__body', [

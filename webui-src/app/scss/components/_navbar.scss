@@ -605,11 +605,15 @@
         width: 18px; height: 18px;
       }
 
+      //  A fixed line box, so a descender or a different label element cannot
+      //  push the text past the bar's bottom edge.
       span {
         overflow: hidden;
         max-width: 100%;
         font-size: var(--t-label);
+        line-height: 1.35;
         text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .nav-unread-badge {

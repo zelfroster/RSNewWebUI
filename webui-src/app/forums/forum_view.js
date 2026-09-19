@@ -808,27 +808,17 @@ const ForumView = () => {
                 class: fsubscribed ? 'forum-subscription--subscribed' : '',
                 onclick: toggleSubscription,
               }, [icon('bookmark'), fsubscribed ? 'Subscribed' : 'Subscribe']),
-            m('details.forum-mobile-actions', {
-              onkeydown: (event) => {
-                if (event.key === 'Escape') {
-                  event.currentTarget.open = false;
-                  event.currentTarget.querySelector('summary').focus();
-                }
-              },
-              onfocusout: (event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
-              },
-            }, [
-              m('summary[aria-label=Forum actions][title=Forum actions]', icon('ellipsis-v')),
-              m('.forum-mobile-actions__items', m('button.is-danger[type=button]', {
-                onclick: (event) => {
-                  const menu = event.currentTarget.closest('details');
-                  menu.open = false;
-                  menu.querySelector('summary').focus();
-                  return toggleSubscription();
-                },
-              }, [icon('bookmark'), fsubscribed ? 'Unsubscribe' : 'Subscribe'])),
-            ]),
+            m(widget.Menu, {
+              class: 'forum-mobile-actions',
+              mark: 'ellipsis-v',
+              title: 'Forum actions',
+              items: [{
+                label: fsubscribed ? 'Unsubscribe' : 'Subscribe',
+                icon: 'bookmark',
+                danger: fsubscribed,
+                onclick: toggleSubscription,
+              }],
+            }),
           ],
         }),
         m(
@@ -868,7 +858,7 @@ const ForumView = () => {
               [icon('pencil-alt'), m('span', 'New Thread')]
             ),
           ]),
-          m(util.ThreadsTable, [
+          m('.threads-scroll', m(util.ThreadsTable, [
             m('thead', m('tr.forum-thread-head', [
               m('th.forum-thread-row__cell', 'Threads'),
               m('th.forum-thread-row__unread', 'Unread'),
@@ -943,7 +933,7 @@ const ForumView = () => {
                   )
                 )
             ),
-          ]),
+          ])),
           v.attrs.msgId && m(ThreadReader, {
             forumId: v.attrs.id,
             msgId: v.attrs.msgId,

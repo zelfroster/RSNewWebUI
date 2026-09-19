@@ -160,22 +160,6 @@ const navbar = () => {
           ]),
           m('.nav-menu__footer', [
             m(
-              '.nav-menu__status',
-              {
-                title: rs.connectionState.status
-                  ? 'Connected to RetroShare Core'
-                  : 'Connection lost',
-              },
-              [
-                // Connected is a reach, not a traffic light: it uses the same
-                // scale as every other "how close is this" signal in the UI.
-                m('span.status-dot', {
-                  class: rs.connectionState.status ? 'status-dot--live' : 'status-dot--off',
-                }),
-                m('span.nav-menu__label.webui-version', WEBUI_VERSION),
-              ]
-            ),
-            m(
               'button.nav-menu__action[type=button]',
               { onclick: () => window.location.reload(true), title: 'Reload the web UI' },
               [icon('sync-alt', { class: 'sidenav-icon', size: 19 }), m('span.nav-menu__label', 'Reload')]
@@ -316,7 +300,10 @@ const MobileNavigation = () => {
           'aria-expanded': String(isMoreOpen),
           'aria-haspopup': 'dialog',
           onclick: () => (isMoreOpen = !isMoreOpen),
-        }, [icon('bars', { class: 'sidenav-icon' }), m('span', 'More')]),
+          //  Same mark size and same label element as navigationContent gives
+          //  the real links, or More sits lower than the five beside it and
+          //  its label is clipped by the bar.
+        }, [icon('bars', { class: 'sidenav-icon', size: 19 }), m('span.nav-menu__label', 'More')]),
       ]),
     ],
   };
@@ -363,7 +350,7 @@ const Layout = () => {
           [
             m(MobileStatus),
             m('.tab-content', { style: { flex: '1', overflow: 'auto' } }, vnode.children),
-            m(statusbar),
+            m(statusbar, { version: WEBUI_VERSION }),
             m(MobileNavigation),
           ]
         ),

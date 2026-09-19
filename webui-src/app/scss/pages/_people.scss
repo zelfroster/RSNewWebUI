@@ -69,6 +69,13 @@ img.avatar {
   border-bottom: 1px solid var(--line-soft);
   background-color: var(--surface);
 
+  .people-search-row {
+    display: flex;
+    gap: var(--s1);
+
+    .search-field { flex: 1; }
+  }
+
 
   //  Tabs on the left, the People filter on the right -- one row, the same
   //  arrangement the mail list uses for its tabs and tag filter.
@@ -78,7 +85,7 @@ img.avatar {
   //  four the wider gap costs are four the row does not have.
   .people-filter-row {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     gap: var(--s1);
     min-height: var(--control);
@@ -106,12 +113,21 @@ img.avatar {
     margin-left: auto;
   }
 
+  .people-filter-menu {
+    .menu__panel { min-width: 0; }
+    .menu__item { min-height: var(--control); }
+  }
+
   .btn-add-id {
     @include btn-base;
     @include btn-square;
 
     flex: none;
   }
+}
+
+@include mobile {
+  .people-sidebar-header .people-filter-row { flex-wrap: wrap; }
 }
 
 
@@ -650,4 +666,3 @@ img.avatar {
     }
   }
 }
-

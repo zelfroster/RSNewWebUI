@@ -107,22 +107,36 @@ const PeopleSidebar = () => {
       //  list is capped instead, and the search narrows it.
       const shownItems = displayItems.slice(0, LIST_RENDER_CAP);
       const hiddenCount = displayItems.length - shownItems.length;
+      const createIdentityButton = State.mainTab === 'people' && State.activeFilter === 'own' &&
+        m('button.btn-add-id.is-primary[title=Create New Identity]', {
+          onclick: () => widget.popupMessage(
+            m(CreateIdentity),
+            'create-identity-modal',
+            {
+              title: 'Create New Identity',
+              lead: 'Choose a name, identity type, and optional custom avatar.',
+            }
+          ),
+        }, icon('plus'));
 
       return m('.people-left-pane', [
         // Sidebar Header Container
         m('.people-sidebar-header', [
           // 1. Top Search Bar
-          m(widget.SearchField, {
-            class: 'searchbar-wrapper',
-            placeholder: 'Search',
-            value: State.searchString,
-            oninput: (e) => {
-              State.searchString = e.target.value;
-            },
-            onclear: () => {
-              State.searchString = '';
-            },
-          }),
+          m('.people-search-row', [
+            m(widget.SearchField, {
+              class: 'searchbar-wrapper',
+              placeholder: 'Search',
+              value: State.searchString,
+              oninput: (e) => {
+                State.searchString = e.target.value;
+              },
+              onclear: () => {
+                State.searchString = '';
+              },
+            }),
+            createIdentityButton,
+          ]),
 
           //  2. Tabs, and the People filter beside them -- same shape as the
           //  mail list, tabs left and filter right. A row of its own would be
@@ -153,44 +167,32 @@ const PeopleSidebar = () => {
             //  rather than the button dropping off on its own.
             State.mainTab === 'people' &&
               m('.people-filter-row__end', [
-              m(
-                'select.filter-select',
-                {
-                  value: State.activeFilter,
-                  onchange: (e) => {
-                    State.activeFilter = e.target.value;
-                    m.route.set(
-                      '/people/' +
-                        (State.activeFilter === 'contacts'
-                          ? 'MyContacts'
-                          : State.activeFilter === 'own'
-                          ? 'OwnIdentity'
-                          : 'All')
-                    );
-                  },
-                },
-                [
-                  m('option[value=contacts]', 'Contacts'),
-                  m('option[value=own]', 'My Identities'),
-                  m('option[value=all]', 'All Users'),
-                ]
-              ),
-
-              State.activeFilter === 'own' &&
-                m(
-                  'button.btn-add-id[title=Create New Identity]',
-                  {
-                    onclick: () => widget.popupMessage(
-                      m(CreateIdentity),
-                      'create-identity-modal',
-                      {
-                        title: 'Create New Identity',
-                        lead: 'Choose a name, identity type, and optional custom avatar.',
-                      }
-                    ),
-                  },
-                  icon('plus')
-                ),
+              //  A menu, not a select: a native select is as wide as its
+              //  longest option at every width, and "My Identities" left no
+              //  room for the tabs beside it on a phone.
+              (() => {
+                const filters = [
+                  { id: 'contacts', label: 'Contacts', icon: 'user-friends', route: 'MyContacts' },
+                  { id: 'own', label: 'My Identities', icon: 'user', route: 'OwnIdentity' },
+                  { id: 'all', label: 'All Users', icon: 'users', route: 'All' },
+                ];
+                const active = filters.find((f) => f.id === State.activeFilter) || filters[0];
+                return m(widget.Menu, {
+                  class: 'people-filter-menu',
+                  mark: active.icon,
+                  label: active.label,
+                  title: `Showing ${active.label}`,
+                  items: filters.map((f) => ({
+                    label: f.label,
+                    icon: f.icon,
+                    selected: f.id === State.activeFilter,
+                    onclick: () => {
+                      State.activeFilter = f.id;
+                      m.route.set('/people/' + f.route);
+                    },
+                  })),
+                });
+              })(),
               ]),
           ]),
         ]),

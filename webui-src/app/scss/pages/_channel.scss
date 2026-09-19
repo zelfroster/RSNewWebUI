@@ -485,7 +485,8 @@ table {
 }
 
 
-.channel-mobile-search, .channel-mobile-actions, .channel-mobile-create { display: none; }
+.channel-mobile-search, .channel-mobile-create { display: none; }
+.channel-mobile-actions.menu { display: none; }
 
 @media (max-width: 700px) {
   .tab-content:has(.channels-detail-widget) { position: relative; }
@@ -509,37 +510,8 @@ table {
     display: inline-flex; align-items: center; justify-content: center;
     width: 32px; height: 32px; padding: 0; font-size: var(--t-row);
   }
-  .channel-mobile-actions {
-    display: block; position: relative;
-    summary {
-      display: flex; align-items: center; justify-content: center;
-      width: 44px; height: 44px; cursor: pointer; list-style: none;
-    }
-    summary::-webkit-details-marker { display: none; }
-    summary:focus-visible { outline: 2px solid var(--brand-deep); }
-    &__items {
-      //  As wide as its widest label, never wider than the screen. `width:
-      //  100%` on the buttons cannot do this on its own: btn-base sets
-      //  `white-space: nowrap`, so a button's label is a floor the panel never
-      //  hears about, and the button then sticks out of the panel and off the
-      //  side of the phone. Boards and channels carry the same menu.
-      position: absolute; right: 0; top: 100%; z-index: 10;
-      width: min(17rem, calc(100vw - 1.5rem));
-      padding: .35rem; background: var(--surface); border: 1px solid var(--line);
-      border-radius: var(--r-md); box-shadow: var(--lift);
-    }
-    &__items button {
-      //  `display: flex` with no width, not `width: 100%`: a block-level box
-      //  fills its container's content edge whatever box-sizing says, where
-      //  `100%` plus btn-base's horizontal padding measured 16px wider than
-      //  the panel and hung off the side of the phone.
-      display: flex; width: auto; min-height: 44px;
-      justify-content: flex-start; text-align: left;
-      min-width: 0; white-space: normal;
-      background: var(--surface); color: var(--ink); box-shadow: none;
-    }
-    &__items button:hover { background: var(--sunken); }
-  }
+  //  The overflow menu carries Unsubscribe on a phone, so the header does not.
+  .channel-mobile-actions.menu { display: inline-flex; }
 }
 
 

@@ -53,7 +53,9 @@
   padding: 10px;
 }
 
-.forum-mobile-actions,
+//  Both belong to the phone header only; the wide header has room for the
+//  real Subscribe and New Thread buttons.
+.forum-mobile-actions.menu,
 .forum-mobile-create {
   display: none;
 }
@@ -135,8 +137,10 @@
 .widget.forums-detail-widget {
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
   height: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
 /* Row one is the forum: where you came from, what it is, what you can do to it.
@@ -156,7 +160,7 @@
 
 .forum-threads {
   display: flex;
-  flex: 1 1 45%;
+  flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
 
@@ -197,7 +201,7 @@
 /* The thread list scrolls inside the top half; the reading pane below stays
  * put. Without a selection it takes the whole pane. */
 .threads-scroll {
-  flex: 1 1 auto;
+  flex: 45 1 0;
   min-height: 0;
   overflow: auto;
 }
@@ -207,7 +211,7 @@
  * list above is only how you got to it. */
 .forum-reader {
   display: flex;
-  flex: 1 1 55%;
+  flex: 55 1 0;
   flex-direction: column;
   min-height: 0;
   margin-top: var(--s3);
@@ -355,7 +359,7 @@ table.threads {
     height: var(--s5);
   }
 
-  .forum-thread-row__toggle {
+  button.forum-thread-row__toggle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -368,8 +372,9 @@ table.threads {
     cursor: pointer;
 
     &:hover {
-      background: var(--sunken);
+      background: transparent;
       color: var(--ink);
+      box-shadow: none;
     }
   }
 
@@ -480,6 +485,9 @@ table.threads {
     flex: 1 1 auto;
   }
 
+  //  The overflow menu carries Unsubscribe on a phone, so the header does not.
+  .forum-mobile-actions.menu { display: inline-flex; }
+
   .forum-mobile-create {
     display: inline-flex;
     align-items: center;
@@ -498,69 +506,6 @@ table.threads {
       background: var(--brand-press);
     }
   }
-
-  .forum-mobile-actions {
-    display: block;
-    position: relative;
-
-    summary {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      cursor: pointer;
-      list-style: none;
-    }
-
-    summary::-webkit-details-marker {
-      display: none;
-    }
-
-    summary:focus-visible {
-      outline: 2px solid var(--brand-deep);
-    }
-
-    &__items {
-      //  As wide as its widest label, never wider than the screen. `width:
-      //  100%` on the buttons cannot do this on its own: btn-base sets
-      //  `white-space: nowrap`, so a button's label is a floor the panel never
-      //  hears about, and the button then sticks out of the panel and off the
-      //  side of the phone. Boards and channels carry the same menu.
-      position: absolute;
-      right: 0;
-      top: 100%;
-      z-index: 10;
-      width: min(17rem, calc(100vw - 1.5rem));
-      padding: .35rem;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--r-md);
-      box-shadow: var(--lift);
-    }
-
-    &__items button {
-      @include btn-base;
-
-      //  `display: flex` with no width, not `width: 100%`: a block-level box
-      //  fills its container's content edge whatever box-sizing says, where
-      //  `100%` plus btn-base's horizontal padding measured 16px wider than
-      //  the panel and hung off the side of the phone.
-      display: flex;
-      width: auto;
-      min-width: 0;
-      //  A label too long for the panel wraps rather than widening it.
-      white-space: normal;
-      min-height: 44px;
-      justify-content: flex-start;
-      text-align: left;
-    }
-
-    &__items button:hover {
-      background: var(--sunken);
-    }
-  }
-
 
   /* Four columns do not fit a phone. Two lines instead: title and unread
    * count, then author and date. Indent step shrinks to keep titles readable. */
@@ -807,4 +752,3 @@ table.threads {
   .forum-thread-composer__attachment { max-width: 100%; flex: 1 1 100%; }
   .forum-thread-composer__actions button { width: 100%; }
 }
-
