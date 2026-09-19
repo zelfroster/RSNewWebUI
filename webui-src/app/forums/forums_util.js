@@ -46,6 +46,18 @@ function formatTimestamp(ts) {
   }
 }
 
+//  The list filter. Module level, like the flags it sets on Data.DisplayForums:
+//  the search field is unmounted on a forum's own page and recreated on the
+//  way back, and must come back showing the filter that is still applied.
+let forumsSearchString = '';
+const matchesForumsSearch = (name) => (name || '').toLowerCase().indexOf(forumsSearchString) > -1;
+function applyForumsSearch(value) {
+  forumsSearchString = (value || '').toLowerCase();
+  for (const hash in Data.DisplayForums) {
+    Data.DisplayForums[hash].isSearched = matchesForumsSearch(Data.DisplayForums[hash].name);
+  }
+}
+
 async function updatedisplayforums(keyid) {
   if (Data.loading.has(keyid)) return;
   Data.loading.add(keyid);
@@ -60,7 +72,7 @@ async function updatedisplayforums(keyid) {
         // struct for a forum
         name: forumInfo.mMeta.mGroupName,
         author: forumInfo.mMeta.mAuthorId,
-        isSearched: true,
+        isSearched: matchesForumsSearch(forumInfo.mMeta.mGroupName),
         description: forumInfo.mDescription,
         isSubscribed:
           forumInfo.mMeta.mSubscribeFlags === GROUP_SUBSCRIBE_SUBSCRIBED ||
@@ -259,23 +271,13 @@ const ThreadsReplyTable = () => {
 };
 
 const SearchBar = () => {
-  let searchString = '';
   return {
     view: (v) =>
       m(widget.SearchField, {
         placeholder: 'Search forums',
-        value: searchString,
-        onclear: () => { searchString = ''; updatedisplayforums(); },
-        oninput: (e) => {
-          searchString = e.target.value.toLowerCase();
-          for (const hash in Data.DisplayForums) {
-            if (Data.DisplayForums[hash].name.toLowerCase().indexOf(searchString) > -1) {
-              Data.DisplayForums[hash].isSearched = true;
-            } else {
-              Data.DisplayForums[hash].isSearched = false;
-            }
-          }
-        },
+        value: forumsSearchString,
+        onclear: () => applyForumsSearch(''),
+        oninput: (e) => applyForumsSearch(e.target.value),
       }),
   };
 };

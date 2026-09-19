@@ -274,6 +274,8 @@ table.threads {
   }
 
   .forum-mobile-search {
+    display: flex;
+    align-items: center;
     flex: 1;
     min-width: 0;
     margin-right: 44px;

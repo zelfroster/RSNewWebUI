@@ -40,6 +40,15 @@
     top: var(--s3);
     right: var(--s3);
     z-index: 1;
+
+    //  26px is a pointer target. A thumb needs the touch box; the glyph stays
+    //  its size, the hit area grows around it.
+    @include touch {
+      width: var(--touch);
+      height: var(--touch);
+      top: var(--s1);
+      right: var(--s1);
+    }
   }
 
   // Remove default widget padding

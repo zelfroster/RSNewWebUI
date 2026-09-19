@@ -2,7 +2,7 @@ const m = require('mithril');
 
 //  Bumped at every change of the web UI; shown in the rail, the phone header
 //  and the Debug page.
-const WEBUI_VERSION = 'v177';
+const WEBUI_VERSION = 'v178';
 
 const login = require('login');
 const rs = require('rswebui');
