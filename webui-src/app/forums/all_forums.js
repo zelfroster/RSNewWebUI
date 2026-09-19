@@ -11,14 +11,9 @@ const Layout = () => {
           util.ForumTable,
           m('tbody', [
             v.attrs.list.map((forum) =>
-              m(util.ForumSummary, {
-                details: forum,
-                category: 'All',
-              })
-            ),
-            v.attrs.list.map((forum) =>
               m(util.DisplayForumsFromList, {
                 id: forum.mGroupId,
+                details: forum,
                 category: 'All',
               })
             ),
