@@ -52,33 +52,35 @@ const getForums = {
 //  Group lists change on the scale of a conversation, not of a frame.
 const FORUM_LIST_REFRESH_MS = 30000;
 
+//  Forums have no popularity split: Popular is the full list as the core
+//  returns it, All the same list sorted by popularity. There is no Other.
 const sections = {
   MyForums: require('forums/my_forums'),
   Subscribed: require('forums/subscribed_forums'),
+  All: require('forums/all_forums'),
   Popular: require('forums/popular_forums'),
-  Other: require('forums/other_forums'),
 };
 
 const navLabels = {
   MyForums: 'My Forums',
   Subscribed: 'Subscribed',
+  All: 'All Forums',
   Popular: 'Popular',
-  Other: 'All Forums',
 };
 
 //  The page title, which can say more than the rail label beside it.
 const pageTitles = {
   MyForums: 'My Forums',
   Subscribed: 'Subscribed Forums',
+  All: 'All Forums',
   Popular: 'Popular Forums',
-  Other: 'All Forums',
 };
 
 const navIcons = {
   MyForums: 'comments',
   Subscribed: 'bookmark',
+  All: 'globe',
   Popular: 'fire',
-  Other: 'globe',
 };
 
 const Layout = () => {

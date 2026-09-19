@@ -84,7 +84,11 @@ const Messages = {
         Messages.outbox = Messages.all.filter(
           (msg) => (msg.msgflags & util.RS_MSG_BOXMASK) === util.RS_MSG_OUTBOX
         );
-        Messages.drafts = Messages.all.filter((msg) => util.isDraftMessage(msg.msgflags));
+        //  The core keeps the DRAFT bit on a draft moved to Trash, so it has
+        //  to be excluded here or it is listed in both folders.
+        Messages.drafts = Messages.all.filter(
+          (msg) => util.isDraftMessage(msg.msgflags) && !(msg.msgflags & util.RS_MSG_TRASH)
+        );
         Messages.trash = Messages.all.filter((msg) => msg.msgflags & util.RS_MSG_TRASH);
         Messages.starred = Messages.all.filter((msg) => msg.msgflags & util.RS_MSG_STAR);
         Messages.system = Messages.all.filter((msg) => msg.msgflags & util.RS_MSG_SYSTEM);

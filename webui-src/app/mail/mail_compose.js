@@ -6,6 +6,7 @@ const renderIdentityTooltip = require('mail/mail_identity_tooltip');
 const icon = require('icon');
 const toast = require('toast');
 const widget = require('widgets');
+const mailApi = require('mail/mail_api');
 
 const UserAvatarsCache = {};
 const RecipientDetailsCache = {};
@@ -494,7 +495,9 @@ const Layout = () => {
       //  MessageToDraft always mints a NEW message id -- it ignores the one
       //  you hand it (p3msgservice.cc: getNewUniqueMsgId). So re-saving a
       //  draft you opened means deleting the one it came from, or the box
-      //  fills with copies of the same unfinished mail.
+      //  fills with copies of the same unfinished mail. A failed save keeps
+      //  the composer open: closing it would discard the text the toast just
+      //  said could not be kept.
       function saveDraft(onDone) {
         if (!hasContent()) {
           if (onDone) onDone();
@@ -505,11 +508,9 @@ const Layout = () => {
           { info: draftInfo(), msgParentId: '' },
           (data, success) => {
             const ok = Boolean(success && data && data.retval);
-            if (ok && previousId) {
-              rs.rsJsonApiRequest('/rsMail/MessageDelete', { msgId: previousId });
-            }
+            if (ok && previousId) mailApi.deleteMessage(previousId);
             toast.result(ok, 'Saved to drafts', 'Could not save the draft');
-            if (onDone) onDone();
+            if (ok && onDone) onDone();
             m.redraw();
           });
       }
@@ -622,9 +623,7 @@ const Layout = () => {
           if (isOk) {
             //  The draft has become a sent mail; leaving it in the box would
             //  show the same message twice.
-            if (v.attrs.draftMsgId) {
-              rs.rsJsonApiRequest('/rsMail/MessageDelete', { msgId: v.attrs.draftMsgId });
-            }
+            if (v.attrs.draftMsgId) mailApi.deleteMessage(v.attrs.draftMsgId);
             Object.keys(Data.recipients).forEach((recipientType) => {
               Data.recipients[recipientType].sendList = [];
             });

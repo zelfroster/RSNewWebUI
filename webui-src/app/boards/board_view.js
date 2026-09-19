@@ -120,6 +120,7 @@ function createboard() {
                 }),
               });
               if (res.body.retval && vnode.attrs.onCreated) await vnode.attrs.onCreated();
+              if (res.body.retval) widget.closePopupMessage();
               res.body.retval
                 ? toast.success('Board created successfully')
                 : toast.error(res.body.errorMessage || 'Error in creating Board');
@@ -264,6 +265,7 @@ function CreatePost() {
             if (res.body.retval) {
               Data.Posts[vnode.attrs.boardId] = {};
               await util.updateDisplayBoards(vnode.attrs.boardId);
+              widget.closePopupMessage();
               toast.success('Post created successfully');
             } else {
               toast.error(res.body.error_message || res.body.errorMessage || 'The post could not be created');

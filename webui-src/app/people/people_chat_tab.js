@@ -77,15 +77,6 @@ function formatChatImage(file, callback) {
 }
 
 const ChatTab = () => {
-  let showAttachmentMenu = false;
-
-  function onDocClick(e) {
-    if (showAttachmentMenu && !e.target.closest('.mobile-chat-attachment')) {
-      showAttachmentMenu = false;
-      m.redraw();
-    }
-  }
-
   function attachFileLink() {
     if (State.isHashing) return;
     //  The path is read by the RetroShare node, not by the browser, so a file
@@ -107,8 +98,6 @@ const ChatTab = () => {
   }
 
   return {
-    oncreate: () => document.addEventListener('click', onDocClick, true),
-    onremove: () => document.removeEventListener('click', onDocClick, true),
     view: () => {
       fetchIdDetails(State.selectedId);
       const details = State.selectedId ? State.gxsIdToDetailsMap[State.selectedId] : null;
@@ -293,7 +282,13 @@ const ChatTab = () => {
           onSend: () => sendDistantChatMessage(),
           onAttachFile: attachFileLink,
           onImage: attachImage,
-          onRemoveAttachment: () => { State.attachedImage = null; },
+          onRemoveAttachment: () => {
+            State.attachedImage = null;
+            //  The session keeps its own copy, restored by selectChatContact:
+            //  clear it too, or the picture comes back after a contact switch.
+            const session = getDistantChatSession(State.selectedId);
+            if (session) session.attachedImage = null;
+          },
           onViewAttachment: openChatImageViewer,
         }),
 

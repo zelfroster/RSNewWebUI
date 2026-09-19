@@ -109,7 +109,8 @@ function addFile(url) {
       },
     },
     (status) => {
-      toast.info('Successfully added file!');
+      widget.closePopupMessage();
+      toast.success('Successfully added file!');
     }
   );
 }

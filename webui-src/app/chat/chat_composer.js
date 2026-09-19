@@ -33,12 +33,33 @@ const ChatComposer = () => {
   let attachOpen = false;
   let imageInput;
 
-  //  Enter sends. Ctrl/Cmd+Enter and Shift+Enter insert a newline, which is
-  //  what every chat client does and what people's fingers expect.
+  function onDocClick(e) {
+    if (!attachOpen || e.target.closest('.chat-composer__attach')) return;
+    attachOpen = false;
+    m.redraw();
+  }
+
+  //  Enter sends. Shift+Enter inserts a newline natively; Ctrl/Cmd+Enter has
+  //  to insert one by hand, the browser does nothing with it in a textarea.
+  //  execCommand keeps the undo stack; the splice is the fallback for the
+  //  browsers that dropped it.
   const onKeyDown = (attrs) => (e) => {
     if (e.key !== 'Enter') return;
-    if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.shiftKey || e.altKey) return;
     e.preventDefault();
+    if (e.ctrlKey || e.metaKey) {
+      const field = e.target;
+      if (!document.execCommand || !document.execCommand('insertText', false, '\n')) {
+        const start = field.selectionStart || 0;
+        const end = field.selectionEnd || 0;
+        const val = field.value;
+        field.value = val.substring(0, start) + '\n' + val.substring(end);
+        field.selectionStart = field.selectionEnd = start + 1;
+      }
+      attrs.onInput(field.value);
+      autoResizeTextarea(field);
+      return;
+    }
     if (!attrs.disabled) attrs.onSend();
   };
 
@@ -57,12 +78,14 @@ const ChatComposer = () => {
     disabled: attrs.disabled,
     title: opts.title,
     'aria-label': opts.title,
-    class: opts.on ? 'is-on' : '',
+    class: [opts.on ? 'is-on' : '', opts.class || ''].filter(Boolean).join(' '),
     'aria-pressed': opts.on === undefined ? undefined : String(opts.on),
     onclick: opts.onclick,
   }, icon(opts.icon));
 
   return {
+    oncreate: () => document.addEventListener('click', onDocClick, true),
+    onremove: () => document.removeEventListener('click', onDocClick, true),
     view: ({ attrs }) => [
       attrs.attachment && m('.chat-attachment-preview', [
         m('.chat-attachment-preview__item', [
@@ -173,6 +196,7 @@ const ChatComposer = () => {
 
         m('textarea.chat-composer__field[rows=1]', {
           placeholder: attrs.placeholder || 'Type a message here...',
+          enterkeyhint: 'send',
           value: attrs.value || '',
           disabled: attrs.disabled,
           oncreate: (v) => autoResizeTextarea(v.dom),

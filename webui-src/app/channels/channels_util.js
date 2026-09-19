@@ -132,6 +132,11 @@ async function updateContentBatch(contentIds, channelid) {
   await updateContentBatch(contentIds.slice(middle), channelid);
 }
 
+//  The channel list filter, module level for the same reason as the flags it
+//  sets: the search field is unmounted inside a channel and recreated on the
+//  way back, and must come back showing the filter that is still applied.
+let channelsSearchString = '';
+
 async function updatedisplaychannels(keyid, details, loadContent = true) {
   const res1 = await rs.rsJsonApiRequest('/rsgxschannels/getChannelsInfo', {
     chanIds: [keyid],
@@ -263,38 +268,33 @@ const ChannelTable = () => {
 };
 const SearchBar = () => {
   // same search bar is used for both channels and posts
-  let searchString = '';
+  let postsSearchString = '';
   return {
-    view: (v) =>
-      m(widget.SearchField, {
-        placeholder:
-          v.attrs.category.localeCompare('channels') === 0 ? 'Search channels' : 'Search posts',
-        value: searchString,
-        oninput: (e) => {
-          searchString = e.target.value.toLowerCase();
-          if (v.attrs.category.localeCompare('channels') === 0) {
-            //  Flags the summaries the list is holding. Every tab's array is
-            //  built by filtering the same objects, so one pass covers all.
-            (v.attrs.list || []).forEach((channel) => {
-              channel.isSearched =
-                !searchString || (channel.mGroupName || '').toLowerCase().includes(searchString);
-            });
-          } else {
-            for (const hash in Data.Posts[v.attrs.channelId]) {
-              // for posts
-              if (
-                Data.Posts[v.attrs.channelId][hash].post.mMeta.mMsgName
-                  .toLowerCase()
-                  .indexOf(searchString) > -1
-              ) {
-                Data.Posts[v.attrs.channelId][hash].isSearched = true;
-              } else {
-                Data.Posts[v.attrs.channelId][hash].isSearched = false;
-              }
-            }
-          }
-        },
-      }),
+    view: (v) => {
+      const forChannels = v.attrs.category === 'channels';
+      const apply = (value) => {
+        const query = value.toLowerCase();
+        if (forChannels) {
+          channelsSearchString = query;
+          (v.attrs.list || []).forEach((channel) => {
+            channel.isSearched = !query || (channel.mGroupName || '').toLowerCase().includes(query);
+          });
+          return;
+        }
+        postsSearchString = query;
+        for (const hash in Data.Posts[v.attrs.channelId]) {
+          const name = Data.Posts[v.attrs.channelId][hash].post.mMeta.mMsgName || '';
+          Data.Posts[v.attrs.channelId][hash].isSearched = name.toLowerCase().includes(query);
+        }
+      };
+      if (forChannels) apply(channelsSearchString);
+      return m(widget.SearchField, {
+        placeholder: forChannels ? 'Search channels' : 'Search posts',
+        value: forChannels ? channelsSearchString : postsSearchString,
+        onclear: () => apply(''),
+        oninput: (event) => apply(event.target.value),
+      });
+    },
   };
 };
 

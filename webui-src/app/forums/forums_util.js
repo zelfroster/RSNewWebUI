@@ -52,6 +52,11 @@ async function loadRetentionPeriods(keyid) {
   m.redraw();
 }
 
+//  The list filter. Module level, like the flags it sets on Data.DisplayForums:
+//  the search field is unmounted on a forum's own page and recreated on the
+//  way back, and must come back showing the filter that is still applied.
+let forumsSearchString = '';
+
 async function updatedisplayforums(keyid) {
   if (Data.loading.has(keyid)) return;
   Data.loading.add(keyid);
@@ -288,21 +293,22 @@ function filterForums(list, query) {
 }
 
 const SearchBar = () => {
-  let searchString = '';
   return {
-    view: (v) =>
-      m(widget.SearchField, {
+    view: (v) => {
+      filterForums(v.attrs.list, forumsSearchString);
+      return m(widget.SearchField, {
         placeholder: 'Search forums',
-        value: searchString,
+        value: forumsSearchString,
         onclear: () => {
-          searchString = '';
+          forumsSearchString = '';
           filterForums(v.attrs.list, '');
         },
         oninput: (e) => {
-          searchString = e.target.value;
-          filterForums(v.attrs.list, searchString.toLowerCase());
+          forumsSearchString = e.target.value;
+          filterForums(v.attrs.list, forumsSearchString.toLowerCase());
         },
-      }),
+      });
+    },
   };
 };
 function popupmessage(message, modalClass = '', options = {}) {

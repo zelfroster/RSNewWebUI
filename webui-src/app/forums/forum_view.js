@@ -479,7 +479,9 @@ const AddThread = () => {
                 return;
               }
               widget.closePopupMessage();
-              toast.success('Thread added successfully');
+              toast.success(vnode.attrs.parent_thread !== ''
+                ? 'Reply added successfully'
+                : 'Thread added successfully');
               util.updatedisplayforums(vnode.attrs.forumId);
               m.redraw();
             },

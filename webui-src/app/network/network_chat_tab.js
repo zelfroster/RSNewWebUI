@@ -101,19 +101,8 @@ function pollHashStatusForDirectChat(localpath, job) {
 }
 
 const ChatTab = () => {
-  let showAttachmentMenu = false;
-
-  function onDocClick(e) {
-    if (showAttachmentMenu && !e.target.closest('.mobile-chat-attachment')) {
-      showAttachmentMenu = false;
-      m.redraw();
-    }
-  }
-
   return {
-    oncreate: () => document.addEventListener('click', onDocClick, true),
     onremove: () => {
-      document.removeEventListener('click', onDocClick, true);
       cancelDirectChatHash();
     },
     view: () => {
