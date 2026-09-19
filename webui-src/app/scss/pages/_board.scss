@@ -1053,7 +1053,20 @@ button.board-card__vote-btn,
       grid-area: 1 / 1;
       width: 44px;
     }
-    > .widget__body { grid-area: 2 / 1; min-height: 0; }
+    //  Three children, three rows: the heading has to be placed too, or it
+    //  auto-places after the body and the board's name lands under the posts.
+    > .widget__heading { grid-area: 2 / 1; }
+    > .widget__body { grid-area: 3 / 1; min-height: 0; }
+
+    //  The view toggle keeps its glyphs only: with the labels, toggle plus
+    //  pagination outgrow a 360px toolbar by ~50px.
+    .board-toolbar__view-toggle .segmented__item {
+      width: var(--control);
+      padding: 0;
+      gap: 0;
+
+      span { display: none; }
+    }
 
     .posts { margin-top: 1px; }
 

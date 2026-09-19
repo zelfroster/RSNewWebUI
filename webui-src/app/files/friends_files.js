@@ -98,7 +98,9 @@ function displayfiles() {
               })
               : m('span.file-tree__twist.is-empty'),
             icon(
-              isId ? 'user-friends' : !isFile ? (parStruct.showChild ? 'folder-open' : 'folder') : 'file',
+              //  `users`, which has the duotone the friend row asks for
+              //  (`user-friends` maps to the same glyph but has no -duo).
+              isId ? 'users' : !isFile ? (parStruct.showChild ? 'folder-open' : 'folder') : 'file',
               {
                 // A friend node is the one icon here that carries reach, so it
                 // is the one that ships duotone.

@@ -79,6 +79,14 @@
     flex: none;
   }
 
+  //  The phone attach menu. Hidden on a pointer (the two wide tools show
+  //  instead); the menu's own rules are the shared .mobile-chat-attachment
+  //  ones in pages/_chat.scss.
+  &__attach {
+    position: relative;
+    flex: none;
+  }
+
   &__file {
     position: absolute;
     width: 1px;
@@ -94,6 +102,26 @@
 }
 
 @media (max-width: 700px) {
-  //  The field needs the width more than the action needs its label.
-  .chat-composer__send .btn-text { display: none; }
+  //  The field needs the width more than the action needs its label: the
+  //  send is a round glyph, the two attach tools one paperclip with a menu.
+  .chat-composer__send {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+    border-radius: var(--r-full);
+
+    .btn-text { display: none; }
+  }
+  .chat-composer__tool--wide { display: none; }
+  .chat-composer .chat-composer__attach { display: block; }
+
+  //  The picker is anchored on the emoji tool, second in the strip: pulled
+  //  back by one tool so it opens at the strip's left padding, and capped so
+  //  it never leaves the viewport the panes clip to.
+  .chat-composer__emoji .emoji-picker {
+    left: calc(-1 * (36px + var(--s1)));
+    width: min(320px, calc(100vw - 2 * var(--s3) - 2px));
+    height: min(296px, calc(100dvh - 8rem));
+  }
 }

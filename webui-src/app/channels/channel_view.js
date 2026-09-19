@@ -519,7 +519,8 @@ const ChannelView = () => {
           },
         }, [
           m('summary[aria-label=Channel actions][title=Channel actions]', icon('ellipsis-v')),
-          m('.channel-mobile-actions__items', m('button.is-danger[type=button]', {
+          m('.channel-mobile-actions__items', m('button[type=button]', {
+              class: csubscribed ? 'is-danger' : '',
             onclick: (event) => {
               const menu = event.currentTarget.closest('details');
               menu.open = false;
