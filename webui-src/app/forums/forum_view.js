@@ -144,6 +144,7 @@ function createforum() {
               if (res.body.retval) {
                 await util.updatedisplayforums(res.body.forumId);
                 if (vnode.attrs.onCreated) await vnode.attrs.onCreated();
+                widget.closePopupMessage();
                 m.redraw();
               }
               res.body.retval === false
@@ -473,9 +474,12 @@ const AddThread = () => {
                     authorId: identity,
                   });
 
-              res.body.retval === false
-                ? toast.error(res.body.errorMessage)
-                : toast.success('Thread added successfully');
+              if (res.body.retval === false) {
+                toast.error(res.body.errorMessage);
+              } else {
+                widget.closePopupMessage();
+                toast.success(vnode.attrs.parent_thread !== '' ? 'Reply added successfully' : 'Thread added successfully');
+              }
               util.updatedisplayforums(vnode.attrs.forumId);
               m.redraw();
             },
@@ -672,7 +676,8 @@ const ForumView = () => {
             },
           }, [
             m('summary[aria-label=Forum actions][title=Forum actions]', icon('ellipsis-v')),
-            m('.forum-mobile-actions__items', m('button.is-danger[type=button]', {
+            m('.forum-mobile-actions__items', m('button[type=button]', {
+              class: fsubscribed ? 'is-danger' : '',
               onclick: (event) => {
                 const menu = event.currentTarget.closest('details');
                 menu.open = false;

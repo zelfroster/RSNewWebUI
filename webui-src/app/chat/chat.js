@@ -395,18 +395,6 @@ const ChatRoomHeader = () => {
 };
 
 const ChatConversationView = () => {
-  let showAttachmentMenu = false;
-
-  function onDocClick(e) {
-    if (ChatHubState.showEmojiPicker && !e.target.closest('.emoji-picker-wrapper')) {
-      ChatHubState.showEmojiPicker = false;
-      m.redraw();
-    }
-    if (showAttachmentMenu && !e.target.closest('.mobile-chat-attachment')) {
-      showAttachmentMenu = false;
-      m.redraw();
-    }
-  }
   return {
     oninit: () => {
       //  The column is part of the layout on a wide screen and a sheet over
@@ -417,11 +405,7 @@ const ChatConversationView = () => {
       }
       scrollChatToBottom();
     },
-    oncreate: () => {
-      document.addEventListener('click', onDocClick, true);
-    },
     onremove: () => {
-      document.removeEventListener('click', onDocClick, true);
       //  The poll writes its file link into the textarea of this very view, so
       //  once the view is gone the answer has nowhere to land: leaving it
       //  running would only keep asking for a result nobody can use.

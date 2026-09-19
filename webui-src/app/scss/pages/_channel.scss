@@ -475,7 +475,14 @@ table {
 
 
 .channel-detail-navigation { display: flex; align-items: center; }
-.channel-mobile-search, .channel-mobile-actions, .channel-mobile-create { display: none; }
+.channel-mobile-actions, .channel-mobile-create { display: none; }
+//  The post search lives in the channel's own header at every width, since
+//  the page head (and the channels search) is not rendered inside a channel.
+.channel-mobile-search {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: .5rem; min-width: 0; flex: 1;
+  input { min-width: 0; max-width: 100%; }
+}
 
 @media (max-width: 700px) {
   .tab-content:has(.channels-detail-widget) { position: relative; }

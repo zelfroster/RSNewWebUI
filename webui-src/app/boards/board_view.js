@@ -4,6 +4,7 @@ const boardKanban = require('boards/board_kanban');
 const rs = require('rswebui');
 const peopleUtil = require('people/people_util');
 const icon = require('icon');
+const widget = require('widgets');
 const { CommentsSection } = require('comments');
 const toast = require('toast');
 const Data = util.Data;
@@ -119,6 +120,7 @@ function createboard() {
                 }),
               });
               if (res.body.retval && vnode.attrs.onCreated) await vnode.attrs.onCreated();
+              if (res.body.retval) widget.closePopupMessage();
               res.body.retval
                 ? toast.success('Board created successfully')
                 : toast.error(res.body.errorMessage || 'Error in creating Board');
@@ -263,6 +265,7 @@ function CreatePost() {
             if (res.body.retval) {
               Data.Posts[vnode.attrs.boardId] = {};
               await util.updateDisplayBoards(vnode.attrs.boardId);
+              widget.closePopupMessage();
               toast.success('Post created successfully');
             } else {
               toast.error(res.body.error_message || res.body.errorMessage || 'The post could not be created');
@@ -414,7 +417,8 @@ function BoardView() {
             },
           }, [
             m('summary[aria-label=Board actions][title=Board actions]', icon('ellipsis-v')),
-            m('.board-mobile-actions__items', m('button.is-danger[type=button]', {
+            m('.board-mobile-actions__items', m('button[type=button]', {
+              class: bsubscribed ? 'is-danger' : '',
               onclick: (event) => {
                 const menu = event.currentTarget.closest('details');
                 menu.open = false;

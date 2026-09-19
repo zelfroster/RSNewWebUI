@@ -20,8 +20,8 @@ const getBoards = {
         console.warn('Boards summaries response did not include groupInfo', res && res.body);
         return;
       }
-      getBoards.All = boards;
       const popular = [...boards].sort((a, b) => (b.mPop || 0) - (a.mPop || 0));
+      getBoards.All = popular;
       getBoards.Other = popular.slice(5);
       getBoards.Popular = popular.slice(0, 5);
       getBoards.Subscribed = boards.filter(
@@ -40,9 +40,12 @@ const getBoards = {
 //  Group lists change on the scale of a conversation, not of a frame.
 const BOARD_LIST_REFRESH_MS = 30000;
 
+//  Popular is the top five by popularity and Other the rest; All is the
+//  whole list in that same order.
 const sections = {
   MyBoards: require('boards/my_boards'),
   Subscribed: require('boards/subscribed_boards'),
+  All: require('boards/all_boards'),
   Popular: require('boards/popular_boards'),
   Other: require('boards/other_boards'),
 };
@@ -50,23 +53,26 @@ const sections = {
 const navLabels = {
   MyBoards: 'My Boards',
   Subscribed: 'Subscribed',
+  All: 'All Boards',
   Popular: 'Popular',
-  Other: 'All Boards',
+  Other: 'Other',
 };
 
 //  The page title, which can say more than the rail label beside it.
 const pageTitles = {
   MyBoards: 'My Boards',
   Subscribed: 'Subscribed Boards',
+  All: 'All Boards',
   Popular: 'Popular Boards',
-  Other: 'All Boards',
+  Other: 'Other Boards',
 };
 
 const navIcons = {
   MyBoards: 'th-large',
   Subscribed: 'bookmark',
+  All: 'globe',
   Popular: 'fire',
-  Other: 'globe',
+  Other: 'layer-group',
 };
 
 const Layout = () => {

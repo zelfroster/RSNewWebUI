@@ -30,13 +30,37 @@ const { autoResizeTextarea } = require('chat/chat_state');
 
 const ChatComposer = () => {
   let emojiOpen = false;
+  //  The phone attach menu (File / Picture behind one paperclip). Closed by
+  //  any click outside it, like the picker.
+  let attachOpen = false;
 
-  //  Enter sends. Ctrl/Cmd+Enter and Shift+Enter insert a newline, which is
-  //  what every chat client does and what people's fingers expect.
+  function onDocClick(e) {
+    if (!attachOpen || e.target.closest('.chat-composer__attach')) return;
+    attachOpen = false;
+    m.redraw();
+  }
+
+  //  Enter sends. Shift+Enter inserts a newline natively; Ctrl/Cmd+Enter has
+  //  to insert one by hand, the browser does nothing with it in a textarea.
+  //  execCommand keeps the undo stack; the splice is the fallback for the
+  //  browsers that dropped it.
   const onKeyDown = (attrs) => (e) => {
     if (e.key !== 'Enter') return;
-    if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.shiftKey || e.altKey) return;
     e.preventDefault();
+    if (e.ctrlKey || e.metaKey) {
+      const field = e.target;
+      if (!document.execCommand || !document.execCommand('insertText', false, '\n')) {
+        const start = field.selectionStart || 0;
+        const end = field.selectionEnd || 0;
+        const val = field.value;
+        field.value = val.substring(0, start) + '\n' + val.substring(end);
+        field.selectionStart = field.selectionEnd = start + 1;
+      }
+      attrs.onInput(field.value);
+      autoResizeTextarea(field);
+      return;
+    }
     if (!attrs.disabled) attrs.onSend();
   };
 
@@ -55,12 +79,14 @@ const ChatComposer = () => {
     disabled: attrs.disabled,
     title: opts.title,
     'aria-label': opts.title,
-    class: opts.on ? 'is-on' : '',
+    class: [opts.on ? 'is-on' : '', opts.class || ''].filter(Boolean).join(' '),
     'aria-pressed': opts.on === undefined ? undefined : String(opts.on),
     onclick: opts.onclick,
   }, icon(opts.icon));
 
   return {
+    oncreate: () => document.addEventListener('click', onDocClick, true),
+    onremove: () => document.removeEventListener('click', onDocClick, true),
     view: ({ attrs }) => [
       attrs.attachment && m('.chat-attachment-preview', [
         m('.chat-attachment-preview__item', [
@@ -83,9 +109,12 @@ const ChatComposer = () => {
 
       m('.chat-composer', [
         //  Attach, image, emoji -- one order, here and in the mail composer.
+        //  On a phone the two attach tools fold into one paperclip with a
+        //  File / Picture menu (`--wide` is hidden there, the menu shown).
         attrs.onAttachFile && tool(attrs, {
           icon: 'paperclip',
           title: 'Attach file link',
+          class: 'chat-composer__tool--wide',
           onclick: attrs.onAttachFile,
         }),
 
@@ -93,7 +122,7 @@ const ChatComposer = () => {
         //  a valid attribute on one, so the browser ignores it. aria-disabled
         //  is what btn-base already styles, and the stylesheet takes the
         //  pointer events off it so it cannot be hovered or clicked either.
-        attrs.onImage && m('label.chat-composer__tool.chat-hub-action-btn', {
+        attrs.onImage && m('label.chat-composer__tool.chat-composer__tool--wide.chat-hub-action-btn', {
           title: 'Send image',
           'aria-disabled': attrs.disabled ? 'true' : undefined,
         }, [
@@ -106,6 +135,40 @@ const ChatComposer = () => {
               e.target.value = '';
             },
           }),
+        ]),
+
+        (attrs.onAttachFile || attrs.onImage) && m('.chat-composer__attach.mobile-chat-attachment', [
+          tool(attrs, {
+            icon: 'paperclip',
+            title: 'Add attachment',
+            on: attachOpen,
+            onclick: (e) => {
+              e.stopPropagation();
+              attachOpen = !attachOpen;
+              emojiOpen = false;
+            },
+          }),
+          attachOpen && m('.mobile-chat-attachment__menu', [
+            attrs.onAttachFile && m('button.mobile-chat-attachment__option[type=button]', {
+              onclick: () => {
+                attachOpen = false;
+                attrs.onAttachFile();
+              },
+            }, [icon('file'), ' File']),
+            attrs.onImage && m('label.mobile-chat-attachment__option', [
+              icon('image'),
+              ' Picture',
+              m('input[type=file][accept=image/*].chat-composer__file', {
+                disabled: attrs.disabled,
+                onchange: (e) => {
+                  const file = e.target.files && e.target.files[0];
+                  if (file) attrs.onImage(file);
+                  attachOpen = false;
+                  e.target.value = '';
+                },
+              }),
+            ]),
+          ]),
         ]),
 
         m('.chat-composer__emoji', [
@@ -131,6 +194,7 @@ const ChatComposer = () => {
 
         m('textarea.chat-composer__field[rows=1]', {
           placeholder: attrs.placeholder || 'Type a message here...',
+          enterkeyhint: 'send',
           value: attrs.value || '',
           disabled: attrs.disabled,
           oncreate: (v) => autoResizeTextarea(v.dom),
