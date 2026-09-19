@@ -143,17 +143,16 @@ const ChatComposer = () => {
           m('button.menu__button.chat-composer__tool.chat-composer__attach-button.chat-hub-action-btn[type=button]', {
             title: 'Attach',
             'aria-label': 'Attach',
-            'aria-haspopup': 'menu',
             'aria-expanded': String(attachOpen),
             disabled: attrs.disabled,
             onclick: () => { attachOpen = !attachOpen; },
           }, icon('paperclip')),
-          attachOpen && m('.menu__panel[role=menu]', [
-            attrs.onImage && m('button.menu__item[type=button][role=menuitem]', {
+          attachOpen && m('.menu__panel', [
+            attrs.onImage && m('button.menu__item[type=button]', {
               disabled: attrs.disabled,
               onclick: () => imageInput.click(),
             }, [icon('image'), m('span', 'Photo')]),
-            attrs.onAttachFile && m('button.menu__item[type=button][role=menuitem]', {
+            attrs.onAttachFile && m('button.menu__item[type=button]', {
               disabled: attrs.disabled,
               onclick: () => {
                 attachOpen = false;

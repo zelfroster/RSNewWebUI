@@ -631,6 +631,7 @@ textarea.chatMsg {
   display: flex;
   align-items: center;
   gap: var(--s2);
+  min-width: 0;
 }
 
 .chat-tunnel-dot {
@@ -997,7 +998,10 @@ textarea.chatMsg {
   overflow: hidden;
 }
 
+.chat-header-back { display: none; }
+
 .chat-hub-header-bar .chat-header-info .chat-header-name {
+  min-width: 0;
   font-size: var(--t-h3);
   font-weight: var(--w-label);
   color: var(--ink);
@@ -1020,19 +1024,24 @@ textarea.chatMsg {
   gap: 0.5rem;
 }
 
+.chat-header-actions-menu.menu { display: none; }
+
 .chat-hub-header-bar .chat-header-actions button {
   @include btn-base;
 }
 
-/* Room-header actions remain available on phones without consuming the
- * message area: their accessible title still describes each icon. */
+/* Mobile keeps the room summary on one row and moves its actions into a menu. */
 @media (max-width: 700px) {
   .chat-hub-header-bar {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
     height: auto;
-    min-height: 48px;
-    padding: .45rem .55rem;
-    gap: .45rem;
+    min-height: var(--control);
+    padding: var(--s2) var(--s3);
+    gap: var(--s2);
   }
+
+  .chat-hub-header-bar .chat-header-back { display: flex; }
 
   .chat-hub-header-bar .chat-header-info {
     min-width: 0;
@@ -1043,31 +1052,11 @@ textarea.chatMsg {
     font-size: var(--t-body);
   }
 
-  .chat-hub-header-bar .chat-header-actions {
-    flex: 0 0 auto;
-    gap: .25rem;
-  }
+  .chat-hub-header-bar .chat-header-actions { display: none; }
 
-  //  Icon only. The label has to be hidden for the 32px box to hold its
-  //  content: without that the text spills out of the button and the five
-  //  actions print on top of one another. `button i` used to do this job and
-  //  has matched nothing since the sprite began rendering <svg class="icon">.
-  //  The title attribute carries the name for a pointer, the aria-label for a
-  //  screen reader.
-  .chat-hub-header-bar .chat-header-actions button {
-    @include btn-base;
-    @include btn-icon;
-
-    width: 32px;
-    min-width: 32px;
-    height: 32px;
-    padding: 0;
-    justify-content: center;
-    overflow: hidden;
-
-    .btn-text { display: none; }
-
-    > .icon { margin: 0; }
+  .chat-header-actions-menu.menu {
+    display: inline-flex;
+    margin-left: auto;
   }
 }
 
@@ -1915,6 +1904,51 @@ label.mobile-chat-attachment__option:hover {
   word-break: break-word !important;
   display: inline !important;
   margin: 0 !important;
+}
+
+@media (max-width: 700px) {
+  .chat-hub-messages.compact-container,
+  .messages.compact-container {
+    gap: var(--s3) !important;
+  }
+
+  .chat-hub-messages.compact-container .message.compact,
+  .messages.compact-container .message.compact {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0 var(--s2);
+    width: 100%;
+    padding: 0 !important;
+    white-space: normal !important;
+  }
+
+  .chat-hub-messages.compact-container .message.compact .username,
+  .messages.compact-container .message.compact .username {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    margin: 0 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .chat-hub-messages.compact-container .message.compact .datetime,
+  .messages.compact-container .message.compact .datetime {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0 !important;
+    white-space: nowrap;
+  }
+
+  .chat-hub-messages.compact-container .message.compact .messagetext,
+  .messages.compact-container .message.compact .messagetext {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+    display: block !important;
+    padding-left: var(--s1);
+  }
 }
 
 /* Emoji Picker Dropdown & Grid Styling */

@@ -242,7 +242,7 @@
   /* Page level sidebars turned into a horizontal tab strip by _navbar.scss:
      make the targets tall enough for a finger. */
   .sidebar a {
-    min-height: $touch-target;
+    min-height: var(--control);
     display: inline-flex !important;
     align-items: center;
   }

@@ -72,8 +72,7 @@
     @include btn-base;
 
     justify-content: flex-start;
-    //  A row in a menu, sized for a thumb, not a control in a toolbar.
-    min-height: var(--touch);
+    min-height: var(--control);
     border: 0;
     background: transparent;
     color: var(--ink);
@@ -113,9 +112,9 @@
   .menu__button {
     @include btn-square;
 
-    width: var(--touch);
-    height: var(--touch);
-    min-width: var(--touch);
-    min-height: var(--touch);
+    width: var(--control);
+    height: var(--control);
+    min-width: var(--control);
+    min-height: var(--control);
   }
 }

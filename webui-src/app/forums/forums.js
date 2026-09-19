@@ -131,6 +131,7 @@ const Layout = () => {
         //  Only the list views get a page header: a forum carries its own
         //  heading, which is the forum's name rather than the tab's.
         !forumId && m(widget.PageHead, {
+          class: 'group-list-head',
           title: pageTitles[vnode.attrs.pathInfo.tab] || 'Forums',
           actions: [
             vnode.attrs.pathInfo.tab === 'MyForums' &&

@@ -764,6 +764,12 @@ const ForumView = () => {
         )
         .forEach((struct) => collect(struct, 0));
 
+      const openThread = (row) => m.route.set('/forums/:tab/:mGroupId/:mMsgId', {
+        tab: m.route.param().tab,
+        mGroupId: v.attrs.id,
+        mMsgId: row.meta.mOrigMsgId,
+      });
+
       return [
         m(widget.PageHead, {
           class: 'forum-detail-head',
@@ -883,13 +889,7 @@ const ForumView = () => {
                         row.meta.mOrigMsgId === v.attrs.msgId
                           ? 'forum-thread-row--selected' : '',
                       ].filter(Boolean).join(' '),
-                      onclick: () => {
-                        m.route.set('/forums/:tab/:mGroupId/:mMsgId', {
-                          tab: m.route.param().tab,
-                          mGroupId: v.attrs.id,
-                          mMsgId: row.meta.mOrigMsgId,
-                        });
-                      },
+                      onclick: () => openThread(row),
                     },
                     [
                       //  The flex box is inside the cell, not the cell itself:
@@ -912,7 +912,14 @@ const ForumView = () => {
                               },
                             }, icon(row.open ? 'chevron-down' : 'chevron-right'))
                             : m('span.forum-thread-row__toggle-spacer'),
-                          m('span.forum-thread-row__title', row.meta.mMsgName || 'No subject'),
+                          m('button.forum-thread-row__title[type=button]', {
+                            'aria-current': row.meta.mOrigMsgId === v.attrs.msgId
+                              ? 'page' : undefined,
+                            onclick: (e) => {
+                              e.stopPropagation();
+                              openThread(row);
+                            },
+                          }, row.meta.mMsgName || 'No subject'),
                           !row.open && row.replies
                             ? m('span.forum-thread-row__replies',
                               `${row.replies} ${row.replies === 1 ? 'reply' : 'replies'}`)

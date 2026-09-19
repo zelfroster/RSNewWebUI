@@ -48,10 +48,10 @@ const NetworkLayout = () => {
         m('.network-left-pane', [m(OwnProfileCard), m(FriendsList)]),
         m('.network-right-pane', [
           m('.mobile-pane-header', [
-            m('button.mobile-back-button', {
-              type: 'button',
+            m(widget.BackButton, {
+              label: 'Back to Network',
               onclick: () => { State.mobilePane = 'list'; },
-            }, [icon('chevron-left'), ' Network']),
+            }),
             m('strong', State.activeTab === 'graph' ? 'Network Graph' : (selectedFriend ? selectedFriend.name : 'Friend')),
           ]),
           m(widget.Segmented, {

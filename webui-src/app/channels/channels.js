@@ -139,6 +139,7 @@ const Layout = () => {
         //  Only the list views get a page header: a channel and a post carry
         //  their own heading, which is the channel's name rather than the tab's.
         !vnode.attrs.pathInfo.mGroupId && m(widget.PageHead, {
+          class: 'group-list-head',
           title: pageTitles[vnode.attrs.pathInfo.tab] || 'Channels',
           actions: [
             m('button.channels-create-button.is-primary', {

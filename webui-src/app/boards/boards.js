@@ -108,6 +108,7 @@ const Layout = () => {
         //  Only the list views get a page header: a board and a post carry
         //  their own heading, which is the board's name rather than the tab's.
         !vnode.attrs.pathInfo.mGroupId && m(widget.PageHead, {
+          class: 'group-list-head',
           title: pageTitles[vnode.attrs.pathInfo.tab] || 'Boards',
           actions: [
             m('button.boards-create-button.is-primary', {

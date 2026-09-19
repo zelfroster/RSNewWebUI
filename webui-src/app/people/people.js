@@ -101,10 +101,10 @@ const PeopleLayout = () => {
         // Right Side Details / Actions Pane
         m('.people-right-pane', [
           m('.mobile-pane-header', [
-            m('button.mobile-back-button', {
-              type: 'button',
+            m(widget.BackButton, {
+              label: State.mainTab === 'chats' ? 'Back to Chats' : 'Back to People',
               onclick: () => { State.mobilePane = 'list'; },
-            }, [icon('chevron-left'), State.mainTab === 'chats' ? ' Chats' : ' People']),
+            }),
             m('strong', name || 'Profile'),
           ]),
           State.selectedId && details

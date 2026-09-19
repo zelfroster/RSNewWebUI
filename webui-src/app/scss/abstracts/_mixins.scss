@@ -70,6 +70,11 @@
   &:hover { border-color: var(--line-hover); background: linear-gradient(180deg, var(--surface), var(--sunken)); }
   &:active { background: var(--press); }
 
+  &:focus-visible {
+    outline: 2px solid var(--select-edge);
+    outline-offset: -2px;
+  }
+
   //  A shade under the cap height of the label beside it. The global 1.15em
   //  is sized for icons standing alone in a row, where they carry the meaning;
   //  in a button the word does that, so the glyph steps back.

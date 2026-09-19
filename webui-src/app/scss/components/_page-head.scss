@@ -36,6 +36,7 @@
     align-items: flex-start;
     gap: var(--s3);
     min-width: 0;
+    max-width: 100%;
   }
 
   //  Sits on the title's cap height, not the block's middle, so a two line
@@ -55,6 +56,7 @@
   }
 
   &__text {
+    flex: 1 1 auto;
     min-width: 0;
   }
 
@@ -64,6 +66,7 @@
     font-weight: var(--w-body);
     line-height: 1.2;
     color: var(--ink);
+    overflow-wrap: anywhere;
   }
 
   &__lead {
@@ -71,6 +74,7 @@
     font-size: var(--t-row);
     line-height: 1.45;
     color: var(--ink-dim);
+    overflow-wrap: anywhere;
   }
 
   //  Actions keep the title's baseline rather than centring against a block
@@ -104,6 +108,16 @@
       flex-wrap: wrap;
 
       > .search-field { flex: 1 1 100%; width: auto; }
+    }
+  }
+
+  .group-list-head .page-head__actions {
+    flex-wrap: nowrap;
+
+    > .search-field {
+      order: -1;
+      flex: 1 1 auto;
+      width: auto;
     }
   }
 }

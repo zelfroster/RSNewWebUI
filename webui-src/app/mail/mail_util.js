@@ -523,6 +523,9 @@ const MessageCard = () => {
 
       const rawMsg = details.msg || '';
       const snippet = stripHtmlForSnippet(rawMsg).slice(0, 110);
+      const openMessage = () => {
+        if (v.attrs.onSelect) v.attrs.onSelect(msg.msgId);
+      };
 
       return m(
         '.mail-card-item',
@@ -532,9 +535,7 @@ const MessageCard = () => {
             isSelected ? 'selected' : '',
             isUnread ? 'unread' : 'read',
           ].filter(Boolean).join(' '),
-          onclick: () => {
-            if (v.attrs.onSelect) v.attrs.onSelect(msg.msgId);
-          },
+          onclick: openMessage,
         },
         [
           isUnread && m('.mail-card-unread-dot'),
@@ -568,19 +569,25 @@ const MessageCard = () => {
               m('.mail-card-date', { title: new Date((msg.ts?.xint64 || msg.ts || details.ts) * 1000).toLocaleString() }, formatMailDate(msg.ts?.xint64 || msg.ts || details.ts)),
             ]),
             m('.mail-card-row-subject', [
-              m('.mail-card-subject', {
+              m('button.mail-card-subject[type=button]', {
                 class: subjectOf(details.title || msg.title) === NO_SUBJECT ? 'is-placeholder' : '',
                 title: details.title || msg.title,
+                onclick: (e) => {
+                  e.stopPropagation();
+                  openMessage();
+                },
               }, subjectOf(details.title || msg.title)),
               m('.mail-card-indicators', [
                 filesCount > 0 && icon('paperclip', { class: 'mail-card-clip',  title: `${filesCount} attachment(s)` }),
                 //  Star and spam are judgements about mail someone sent you.
                 //  A draft is yours and unsent, so neither applies to it.
                 !isDraft && m(
-                  'span.mail-card-spam-btn[role=button]',
+                  'button.mail-card-spam-btn[type=button]',
                   {
                     class: isSpam ? 'spammed' : '',
                     title: isSpam ? 'Mark as not spam' : 'Mark as spam',
+                    'aria-label': isSpam ? 'Mark as not spam' : 'Mark as spam',
+                    'aria-pressed': String(isSpam),
                     onclick: (e) => {
                       e.stopPropagation();
                       e.preventDefault();
@@ -605,10 +612,12 @@ const MessageCard = () => {
                   icon(isSpam ? 'fire-fill' : 'fire')
                 ),
                 !isDraft && m(
-                  'span.mail-card-star-btn[role=button]',
+                  'button.mail-card-star-btn[type=button]',
                   {
                     class: isStarred ? 'starred' : '',
                     title: isStarred ? 'Unstar' : 'Star',
+                    'aria-label': isStarred ? 'Unstar message' : 'Star message',
+                    'aria-pressed': String(isStarred),
                     onclick: (e) => {
                       e.stopPropagation();
                       e.preventDefault();

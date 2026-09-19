@@ -379,12 +379,27 @@ table.threads {
   }
 
   .forum-thread-row__title {
+    display: block;
+    flex: 1 1 auto;
     min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
     overflow: hidden;
     color: var(--ink);
+    font: inherit;
     font-weight: var(--w-label);
+    text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
+
+    &:hover {
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+    }
   }
 
   /* What a collapsed branch is hiding. */
@@ -492,8 +507,10 @@ table.threads {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: var(--control);
+    height: var(--control);
+    min-width: var(--control);
+    min-height: var(--control);
     padding: 0;
     font-size: var(--t-row);
     border-radius: var(--r-md);
@@ -534,6 +551,13 @@ table.threads {
       font-size: var(--t-body);
     }
 
+    .forum-thread-row__toggle,
+    .forum-thread-row__toggle-spacer {
+      flex-basis: var(--control);
+      width: var(--control);
+      height: var(--control);
+    }
+
     .forum-thread-row__unread,
     .forum-thread-row__date,
     .forum-thread-row__author {
@@ -543,7 +567,7 @@ table.threads {
     .forum-thread-row__author {
       grid-column: 1;
       grid-row: 2;
-      padding-left: calc(var(--s2) + var(--s5));
+      padding-left: calc(var(--s2) + var(--control));
       font-size: var(--t-label);
     }
 

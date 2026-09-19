@@ -35,13 +35,3 @@
 
   &:active { transform: scale(.92); }
 }
-
-@include touch {
-  .back-button {
-    //  A comfortable thumb target on a phone. The mark stays its own size.
-    width: var(--touch);
-    height: var(--touch);
-    min-width: var(--touch);
-    min-height: var(--touch);
-  }
-}

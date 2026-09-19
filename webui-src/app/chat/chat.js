@@ -220,7 +220,74 @@ const ChatRoomHeader = () => {
       const room = vnode.attrs.room;
       const lobbyHexId = rs.idToHex(room.lobby_id);
       const isDistant = room.chatType === 2;
+      const showHistory = () => { ChatHubState.showHistoryModal = true; };
+      const leaveDistant = () => widget.confirmMessage({
+        title: 'Leave conversation',
+        message: 'You will stop receiving messages from this distant chat.',
+        confirmLabel: 'Leave',
+        danger: true,
+        onConfirm: () => {
+          rs.rsJsonApiRequest(
+            '/rsChats/closeDistantChatConnexion',
+            { pid: lobbyHexId },
+            (data, success) => {
+              if (!success) return;
+              ChatLobbyModel.stopStatusPolling();
+              ChatHubState.selectedRoom = null;
+              ChatHubState.selectedRoomId = null;
+              ChatHubState.selectedRoomType = null;
+              m.route.set('/chat');
+            }
+          );
+        },
+      });
+      const toggleParticipants = () => {
+        ChatHubState.showParticipants = !ChatHubState.showParticipants;
+        ChatHubState.activeMenu = null;
+        ChatHubState.hoveredUser = null;
+      };
+      const toggleDetails = () => {
+        const toChat = ChatHubState.activeTab === 'details';
+        ChatHubState.activeTab = toChat ? 'chat' : 'details';
+        if (toChat) scrollChatToBottom();
+      };
+      const inviteFriends = () => {
+        ChatHubState.showInviteModal = true;
+        loadFriendsForInvite();
+      };
+      const leaveRoom = () => {
+        ChatLobbyModel.unsubscribeChatLobby(lobbyHexId, () => {
+          ChatHubState.selectedRoom = null;
+          ChatHubState.selectedRoomId = null;
+          ChatHubState.selectedRoomType = null;
+          m.route.set('/chat');
+        });
+      };
+      const menuItems = isDistant
+        ? [
+            { label: 'View history', icon: 'history', onclick: showHistory },
+            { label: 'Leave chat', icon: 'sign-out-alt', danger: true, onclick: leaveDistant },
+          ]
+        : [
+            {
+              label: ChatHubState.showParticipants ? 'Hide participants' : 'Show participants',
+              icon: 'users', selected: Boolean(ChatHubState.showParticipants),
+              onclick: toggleParticipants,
+            },
+            {
+              label: ChatHubState.activeTab === 'details' ? 'Back to conversation' : 'Room details',
+              icon: ChatHubState.activeTab === 'details' ? 'comments' : 'info-circle',
+              selected: ChatHubState.activeTab === 'details', onclick: toggleDetails,
+            },
+            { label: 'Invite friends', icon: 'user-plus', onclick: inviteFriends },
+            { label: 'View history', icon: 'history', onclick: showHistory },
+            { label: 'Leave room', icon: 'sign-out-alt', danger: true, onclick: leaveRoom },
+          ];
       return m('.chat-hub-header-bar', [
+        vnode.attrs.onBack && m('.chat-header-back', m(widget.BackButton, {
+          label: 'Back to Chats',
+          onclick: vnode.attrs.onBack,
+        })),
         m('.chat-header-info', [
           m('.chat-header-name-container', [
             m('.chat-header-name', room.lobby_name || '<unnamed>'),
@@ -234,16 +301,14 @@ const ChatRoomHeader = () => {
           ]),
           m('.chat-header-topic', room.lobby_topic || 'No topic'),
         ]),
-        m('.chat-header-actions', [
+        !vnode.attrs.hideActions && m('.chat-header-actions', [
           isDistant
             ? [
                 m(
                   'button.blue',
                   {
                     title: 'View distant chat history',
-                    onclick: () => {
-                      ChatHubState.showHistoryModal = true;
-                    }
+                    onclick: showHistory,
                   },
                   [icon('history'), m('span.btn-text', ' History')]
                 ),
@@ -251,31 +316,7 @@ const ChatRoomHeader = () => {
                   'button.red',
                   {
                     title: 'Leave Distant Chat',
-                    onclick: () => {
-                      widget.confirmMessage({
-                        title: 'Leave conversation',
-                        message: 'You will stop receiving messages from this distant chat.',
-                        confirmLabel: 'Leave',
-                        danger: true,
-                        onConfirm: () => {
-                        rs.rsJsonApiRequest(
-                          '/rsChats/closeDistantChatConnexion',
-                          {
-                            pid: lobbyHexId,
-                          },
-                          (data, success) => {
-                            if (success) {
-                              ChatLobbyModel.stopStatusPolling();
-                              ChatHubState.selectedRoom = null;
-                              ChatHubState.selectedRoomId = null;
-                              ChatHubState.selectedRoomType = null;
-                              m.route.set('/chat');
-                            }
-                          }
-                        );
-                        },
-                      });
-                    },
+                    onclick: leaveDistant,
                   },
                   [icon('sign-out-alt'), m('span.btn-text', ' Leave Chat')]
                 )
@@ -290,11 +331,7 @@ const ChatRoomHeader = () => {
                     title: ChatHubState.showParticipants ? 'Hide participants' : 'Show participants',
                     'aria-pressed': String(Boolean(ChatHubState.showParticipants)),
                     class: ChatHubState.showParticipants ? 'is-on' : '',
-                    onclick: () => {
-                      ChatHubState.showParticipants = !ChatHubState.showParticipants;
-                      ChatHubState.activeMenu = null;
-                      ChatHubState.hoveredUser = null;
-                    }
+                    onclick: toggleParticipants,
                   },
                   [icon('users'), m('span.btn-text', ' ' + ChatLobbyModel.users.length)]
                 ),
@@ -304,11 +341,7 @@ const ChatRoomHeader = () => {
                     title: ChatHubState.activeTab === 'details' ? 'Back to conversation' : 'Room details',
                     'aria-pressed': String(ChatHubState.activeTab === 'details'),
                     class: ChatHubState.activeTab === 'details' ? 'is-on' : '',
-                    onclick: () => {
-                      const toChat = ChatHubState.activeTab === 'details';
-                      ChatHubState.activeTab = toChat ? 'chat' : 'details';
-                      if (toChat) scrollChatToBottom();
-                    }
+                    onclick: toggleDetails,
                   },
                   ChatHubState.activeTab === 'details'
                     ? [icon('comments'), m('span.btn-text', ' Chat')]
@@ -317,10 +350,7 @@ const ChatRoomHeader = () => {
                 m('button.is-primary',
                   {
                     title: 'Invite friends to this room',
-                    onclick: () => {
-                      ChatHubState.showInviteModal = true;
-                      loadFriendsForInvite();
-                    }
+                    onclick: inviteFriends,
                   },
                   [icon('user-plus'), m('span.btn-text', ' Invite')]
                 ),
@@ -328,9 +358,7 @@ const ChatRoomHeader = () => {
                   'button.blue',
                   {
                     title: 'View chat room history',
-                    onclick: () => {
-                      ChatHubState.showHistoryModal = true;
-                    }
+                    onclick: showHistory,
                   },
                   [icon('history'), m('span.btn-text', ' History')]
                 ),
@@ -338,19 +366,18 @@ const ChatRoomHeader = () => {
                   'button.red',
                   {
                     title: 'Leave Room',
-                    onclick: () => {
-                      ChatLobbyModel.unsubscribeChatLobby(lobbyHexId, () => {
-                        ChatHubState.selectedRoom = null;
-                        ChatHubState.selectedRoomId = null;
-                        ChatHubState.selectedRoomType = null;
-                        m.route.set('/chat');
-                      });
-                    },
+                    onclick: leaveRoom,
                   },
                   [icon('sign-out-alt'), m('span.btn-text', ' Leave')]
                 )
               ],
         ]),
+        !vnode.attrs.hideActions && m(widget.Menu, {
+          class: 'chat-header-actions-menu',
+          mark: 'ellipsis-v',
+          title: 'Actions',
+          items: menuItems,
+        }),
       ]);
     },
   };
@@ -1590,21 +1617,18 @@ const Layout = {
       ]),
 
       m('.chat-hub-right-pane', [
-        m('.mobile-pane-header', [
-          m('button.mobile-back-button', {
-            type: 'button',
-            onclick: () => {
-              ChatHubState.mobilePane = 'list';
-              m.route.set('/chat');
-            },
-          }, [icon('chevron-left'), ' Chats']),
-          m('strong', ChatHubState.selectedRoom ? (ChatHubState.selectedRoom.lobby_name || 'Conversation') : 'Conversation'),
-        ]),
         ChatHubState.selectedRoom
           ? [
+              m(ChatRoomHeader, {
+                room: ChatHubState.selectedRoom,
+                hideActions: ChatHubState.selectedRoomType !== 'subscribed',
+                onBack: () => {
+                  ChatHubState.mobilePane = 'list';
+                  m.route.set('/chat');
+                },
+              }),
               ChatHubState.selectedRoomType === 'subscribed'
                 ? [
-                    m(ChatRoomHeader, { room: ChatHubState.selectedRoom }),
                     //  Two tabs where one of them is the whole point of the
                     //  screen: the conversation is the room, and Details is a
                     //  thing you go and look at. It is a header button now, so

@@ -1010,9 +1010,10 @@
 
   .mobile-pane-header {
     display: grid !important;
-    grid-template-columns: minmax(5rem, auto) minmax(0, 1fr) minmax(5rem, auto);
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--s2);
     align-items: center;
-    min-height: 46px;
+    min-height: var(--control);
     padding: .35rem .65rem;
     border-bottom: 1px solid var(--line-soft);
     background: var(--surface);
@@ -1023,18 +1024,9 @@
     grid-column: 2;
     overflow: hidden;
     color: var(--ink);
-    text-align: center;
+    text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .mobile-back-button {
-    @include btn-base;
-
-    grid-column: 1;
-    width: auto !important;
-    min-width: 0 !important;
-    margin: 0 !important;
   }
 
   .network-container .network-tabs {
