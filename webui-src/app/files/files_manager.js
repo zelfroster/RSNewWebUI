@@ -63,6 +63,7 @@ const AddSharedDirForm = () => {
     rs.rsJsonApiRequest('/rsFiles/addSharedDirectory', { ...newSharedDir }).then((res) => {
       if (res.body.retval) {
         loadSharedDirectories();
+        widget.closePopupMessage();
       }
       toast.result(res.body.retval,
         'Directory shared',

@@ -199,6 +199,7 @@ function confirmAddPrompt(details, cert, long) {
             if (res.body.retval) {
               NetworkData.rememberPendingFriend(details);
               await refreshFriendLists(details.gpg_id || details.pgpId);
+              widget.closePopupMessage();
               toast.success('Successfully added friend.');
             } else {
               toast.error('An error occoured during adding. Friend not added.');
@@ -216,6 +217,7 @@ function confirmAddPrompt(details, cert, long) {
             if (res.body.retval) {
               NetworkData.rememberPendingFriend(details);
               await refreshFriendLists(details.gpg_id || details.pgpId);
+              widget.closePopupMessage();
               toast.success('Successfully added friend.');
             } else {
               toast.error('An error occoured during adding. Friend not added.');
