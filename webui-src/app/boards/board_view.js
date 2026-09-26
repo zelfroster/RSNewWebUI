@@ -7,6 +7,7 @@ const icon = require('icon');
 const widget = require('widgets');
 const { CommentsSection } = require('comments');
 const toast = require('toast');
+const prepareGroupThumbnail = require('group_thumbnail');
 const Data = util.Data;
 
 function createboard() {
@@ -16,6 +17,9 @@ function createboard() {
   let thumbnail;
   let thumbnailPreview = '';
   let thumbnailFileName = '';
+  let thumbnailLoading = false;
+  let thumbnailError = false;
+  let thumbnailSelection = 0;
   let circle = util.PUBLIC;
   let circles = [];
   let selectedCircle;
@@ -47,28 +51,36 @@ function createboard() {
           ]),
           m('span.create-board-form__visual-label', 'Thumbnail'),
           m('input.create-board-form__file-input[type=file][id=board-thumbnail][accept=image/*]', {
-            onchange: (e) => {
+            onchange: async (e) => {
+              const selection = ++thumbnailSelection;
               const file = e.target.files[0];
-              if (!file) {
-                thumbnail = undefined;
-                thumbnailPreview = '';
-                thumbnailFileName = '';
-                return;
+              thumbnail = undefined;
+              thumbnailPreview = '';
+              thumbnailFileName = file ? file.name : '';
+              thumbnailError = false;
+              thumbnailLoading = Boolean(file);
+              if (!file) return;
+              try {
+                const preview = await prepareGroupThumbnail(file);
+                if (selection !== thumbnailSelection) return;
+                thumbnailPreview = preview;
+                thumbnail = preview.substring(preview.indexOf(',') + 1);
+              } catch (_error) {
+                if (selection !== thumbnailSelection) return;
+                thumbnailError = true;
+                toast.error('Unable to load thumbnail. Choose another image.');
+              } finally {
+                if (selection === thumbnailSelection) {
+                  thumbnailLoading = false;
+                  m.redraw();
+                }
               }
-              thumbnailFileName = file.name;
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                thumbnailPreview = reader.result;
-                thumbnail = thumbnailPreview.substring(thumbnailPreview.indexOf(',') + 1);
-                m.redraw();
-              };
-              reader.readAsDataURL(file);
             },
           }),
           m('label.create-board-form__file-button[for=board-thumbnail]', {
             title: thumbnailFileName || 'Choose a board thumbnail',
           }, [icon('upload'), thumbnailPreview ? ' Change image' : ' Choose image']),
-          m('small', 'Square images work best.'),
+          m('small', 'Images are cropped to a 64 × 64 pixel square.'),
         ]),
         m('.create-board-form__field.create-board-form__identity', [
           m('label[for=idtags]', 'Publishing identity'),
@@ -108,7 +120,9 @@ function createboard() {
         }),
         m('button.create-board-form__submit.is-primary',
           {
+            disabled: thumbnailLoading || thumbnailError,
             onclick: async () => {
+              if (thumbnailLoading || thumbnailError) return;
               const res = await rs.rsJsonApiRequest('/rsposted/createBoardV2', {
                 board_name: title,
                 board_description: body,
