@@ -58,8 +58,8 @@ const GraphCanvas = () => {
     context.globalAlpha = simulation.links.length > 500 ? 0.3 : 0.65;
     context.beginPath();
     simulation.links.forEach(([a, b]) => {
-      const source = viewport.toScreen(simulation.bodies[a].position, attrs.zoom);
-      const target = viewport.toScreen(simulation.bodies[b].position, attrs.zoom);
+      const source = screenOf(simulation.bodies[a]);
+      const target = screenOf(simulation.bodies[b]);
       context.moveTo(source.x, source.y);
       context.lineTo(target.x, target.y);
     });
@@ -72,7 +72,7 @@ const GraphCanvas = () => {
     context.font = `${palette.fontSize}px ${palette.font}`;
     context.textBaseline = 'middle';
     const drawNode = (body, queueLabel = true) => {
-      const { x, y } = viewport.toScreen(body.position, attrs.zoom);
+      const { x, y } = screenOf(body);
       const match = query && body.name.toLocaleLowerCase().includes(query);
       const selected = body.id === attrs.selectedId || body.id === dragged || body.id === hovered;
       const radius = nodeRadius(body);
@@ -100,7 +100,7 @@ const GraphCanvas = () => {
     foreground.forEach((body) => drawNode(body));
     const painted = [];
     labels.reverse().forEach(({ body, radius }) => {
-      const { x, y } = viewport.toScreen(body.position, attrs.zoom);
+      const { x, y } = screenOf(body);
       const label = labelFor(body);
       const gap = palette.labelGap;
       const width = Math.min(label.width, Math.max(1, area.width - gap * 2));
@@ -149,10 +149,23 @@ const GraphCanvas = () => {
     return label;
   }
 
+  //  The layout is kept inside the area seen at 100 %. Zoomed in, nodes past
+  //  the edge are drawn on it by screenOf, but keep their real place, so
+  //  zooming back out shows the layout as it was.
   function constrain() {
     if (!bounds.width || !bounds.height) return;
     const radius = Math.max(0, ...simulation.bodies.map(nodeRadius));
-    simulation.setBounds(viewport.worldBounds(radius + palette.labelGap + palette.stroke, attrs.zoom));
+    simulation.setBounds(viewport.worldBounds(radius + palette.labelGap + palette.stroke, 1));
+  }
+
+  function screenOf(body) {
+    const point = viewport.toScreen(body.position, attrs.zoom);
+    const area = viewport.area();
+    const pad = Math.min(nodeRadius(body) + palette.labelGap + palette.stroke, area.width / 3, area.height / 3);
+    return {
+      x: Math.max(area.x + pad, Math.min(area.x + area.width - pad, point.x)),
+      y: Math.max(area.y + pad, Math.min(area.y + area.height - pad, point.y)),
+    };
   }
 
   function tick() {
@@ -248,7 +261,7 @@ const GraphCanvas = () => {
     let hit;
     let nearest = Infinity;
     simulation.bodies.forEach((body) => {
-      const screen = viewport.toScreen(body.position, attrs.zoom);
+      const screen = screenOf(body);
       const distance = Math.hypot(screen.x - point.x, screen.y - point.y);
       if (distance < Math.max(nodeRadius(body), palette.touch / 2) && distance < nearest) { hit = body; nearest = distance; }
     });
@@ -274,6 +287,7 @@ const GraphCanvas = () => {
     wake(true);
   };
   const wheel = (event) => {
+    if (!event.deltaY) return;
     event.preventDefault();
     autoFit = false;
     attrs.onzoom(attrs.zoom + (event.deltaY < 0 ? 0.1 : -0.1));
