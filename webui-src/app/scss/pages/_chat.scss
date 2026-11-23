@@ -1656,7 +1656,7 @@ label.mobile-chat-attachment__option:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgb(var(--ink-rgb) / 0.32);
+  background-color: var(--overlay);
 
   //  .modal-content centres itself against #modal-container with inset+margin;
   //  here the overlay's flexbox does it, so it sits in normal flow.
@@ -2223,9 +2223,9 @@ label.mobile-chat-attachment__option:hover {
   justify-content: center;
   box-sizing: border-box;
   padding: 3.5rem var(--s4) var(--s4);
-  //  Dark and clearly transparent, in the product's own ink. Much past this
-  //  and the app behind reads as gone rather than as behind.
-  background: rgb(var(--ink-rgb) / 0.72);
+  //  Dark in both themes and clearly transparent. Much past this and the app
+  //  behind reads as gone rather than as behind.
+  background: var(--overlay-strong);
 
   &__image {
     display: block;
@@ -2250,7 +2250,7 @@ label.mobile-chat-attachment__option:hover {
 
     &:hover {
       background: rgb(255 255 255 / 0.22);
-      color: var(--surface);
+      color: var(--on-media);
     }
 
     &:active {
