@@ -292,24 +292,29 @@ const BoardTable = () => {
   };
 };
 
+//  Module level: the search field is gone while a board is open, and the list
+//  refresh brings new objects. Both must still show the filter that applies.
+let boardsSearchString = '';
+
+function filterBoards(list, value) {
+  const query = (value || '').toLowerCase();
+  (list || []).forEach((board) => {
+    const name = (board.mGroupName || board.name || '').toLowerCase();
+    board.isSearched = !query || name.includes(query);
+  });
+}
+
 const SearchBar = () => {
-  let searchString = '';
   return {
-    view: (vnode) =>
-      m(widget.SearchField, {
+    view: (vnode) => {
+      filterBoards(vnode.attrs.list, boardsSearchString);
+      return m(widget.SearchField, {
         placeholder: 'Search boards',
-        value: searchString,
-        oninput: (e) => {
-          searchString = e.target.value;
-          const query = searchString.toLowerCase();
-          if (vnode.attrs.list) {
-            vnode.attrs.list.forEach((board) => {
-              const name = (board.mGroupName || board.name || '').toLowerCase();
-              board.isSearched = name.includes(query);
-            });
-          }
-        },
-      }),
+        value: boardsSearchString,
+        onclear: () => { boardsSearchString = ''; },
+        oninput: (e) => { boardsSearchString = e.target.value; },
+      });
+    },
   };
 };
 
