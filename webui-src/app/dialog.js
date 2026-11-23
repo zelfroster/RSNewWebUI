@@ -1,6 +1,18 @@
 const m = require('mithril');
 const motion = require('motion');
 
+/**
+ * A modal dialog makes the rest of the page inert, toasts included.
+ * Keep the toast stack inside the top open modal, back in the body after.
+ */
+function placeToasts() {
+  const host = document.getElementById('notification-container');
+  if (!host) return;
+  const modals = Array.from(document.querySelectorAll('dialog[open]')).filter((d) => d.matches(':modal'));
+  const parent = modals[modals.length - 1] || document.body;
+  if (host.parentElement !== parent) parent.appendChild(host);
+}
+
 const Dialog = () => {
   let opener;
   let onclose = () => { };
@@ -20,6 +32,7 @@ const Dialog = () => {
       opener = document.activeElement;
       fitViewport();
       dom.showModal();
+      placeToasts();
       window.addEventListener('resize', fitViewport);
       window.visualViewport?.addEventListener('resize', fitViewport);
       window.visualViewport?.addEventListener('scroll', fitViewport);
@@ -45,6 +58,7 @@ const Dialog = () => {
         else desktopQuery.removeListener(onLayoutChange);
       }
       dom.close();
+      placeToasts();
       if (opener && opener.isConnected) opener.focus();
     },
     view: ({ attrs, children }) => {
