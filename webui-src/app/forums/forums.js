@@ -24,9 +24,9 @@ const getForums = {
     try {
       const res = await rs.rsJsonApiRequest('/rsgxsforums/getForumsSummaries');
       if (!Array.isArray(res?.body?.forums)) throw new Error('Forum summaries unavailable');
-      getForums.All = res.body.forums;
+      getForums.Popular = res.body.forums;
+      getForums.All = [...res.body.forums].sort((a, b) => (b.mPop || 0) - (a.mPop || 0));
       getForums.Other = getForums.All;
-      getForums.Popular = getForums.All;
       getForums.Subscribed = getForums.All.filter(
         (forum) =>
           forum.mSubscribeFlags === util.GROUP_SUBSCRIBE_SUBSCRIBED ||
