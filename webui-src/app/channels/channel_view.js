@@ -708,10 +708,17 @@ const PostView = () => {
   let messageExpanded = false;
   return {
     oninit: async (v) => {
-      if (Data.Posts[v.attrs.channelId] && Data.Posts[v.attrs.channelId][v.attrs.msgId]) {
-        post = Data.Posts[v.attrs.channelId][v.attrs.msgId].post;
+      const { channelId, msgId } = v.attrs;
+      const stored = () => Data.Posts[channelId] && Data.Posts[channelId][msgId];
+      if (!stored()) {
+        //  Opened from a link or a new tab: the channel is not loaded yet. Get
+        //  this post first, then the rest of the channel for its comments.
+        Data.Posts[channelId] = Data.Posts[channelId] || {};
+        await util.updatecontent([msgId], channelId);
+        util.updatedisplaychannels(channelId).then(() => m.redraw());
       }
-      if (post) {
+      if (stored()) post = stored().post;
+      if (post.mFiles) {
         post.mFiles.map(async (file) => {
           const res = await rs.rsJsonApiRequest('/rsfiles/alreadyHaveFile', {
             // checks if the file is already there with the user
@@ -733,19 +740,26 @@ const PostView = () => {
       fileDown.Downloads.loadStatus(); // for retrieving downloading files.
     },
     view: (v) => {
+      const back = {
+        label: 'Back to channel',
+        onclick: () => m.route.set('/channels/:tab/:mGroupId', {
+          tab: m.route.param().tab,
+          mGroupId: m.route.param().mGroupId,
+        }),
+      };
+      if (!post.mMeta) {
+        return [
+          m(widget.PageHead, { back, title: '' }),
+          m('.widget__body', m(widget.Loading, { label: 'Loading post…' })),
+        ];
+      }
       const message = post.mMsg || '';
       const messageText = String(message).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
       const hasEmbeddedImage = /<img\b|data:image\//i.test(String(message));
       const hasLongMessage = messageText.length > 280 || hasEmbeddedImage;
       return [
       m(widget.PageHead, {
-        back: {
-          label: 'Back to channel',
-          onclick: () => m.route.set('/channels/:tab/:mGroupId', {
-            tab: m.route.param().tab,
-            mGroupId: m.route.param().mGroupId,
-          }),
-        },
+        back,
         title: post.mMeta.mMsgName,
       }),
       m('.widget__body', [
