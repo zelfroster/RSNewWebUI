@@ -308,6 +308,7 @@ module.exports = {
   SearchBar,
   DisplayChannelsFromList,
   updatedisplaychannels,
+  updatecontent,
   ChannelTable,
   FilesTable,
   CommentsTable,

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Retroshare's Web Interface",
   "scripts": {
+    "test:channels": "node --test make-src/channel-post.test.js",
     "test:motion": "node --test make-src/motion.test.js",
     "test:graph": "node --test make-src/graph.test.js",
     "test:brand": "node --test make-src/brand.test.js",

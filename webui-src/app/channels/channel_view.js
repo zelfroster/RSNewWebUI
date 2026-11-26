@@ -713,20 +713,45 @@ const PostView = () => {
   let ownId;
   let identitiesLoading = true;
   let messageExpanded = false;
+  let loading = false;
+  let loadError = '';
+  const checkedFiles = new Set();
+  const readPost = ({ channelId, msgId }) => {
+    const cached = Data.Posts[channelId]?.[msgId]?.post;
+    if (!cached) return;
+    post = cached;
+    (post.mFiles || []).forEach(async (file) => {
+      if (checkedFiles.has(file.mHash)) return;
+      checkedFiles.add(file.mHash);
+      const res = await rs.rsJsonApiRequest('/rsfiles/alreadyHaveFile', { hash: file.mHash });
+      filesInfo[file.mHash] = res?.body;
+      m.redraw();
+    });
+  };
+  const loadPost = async (attrs) => {
+    if (loading) return;
+    loading = true;
+    loadError = '';
+    const { channelId, msgId } = attrs;
+    Data.Posts[channelId] = Data.Posts[channelId] || {};
+    try {
+      await util.updatecontent([msgId], channelId).catch(() => false);
+      readPost(attrs);
+      m.redraw();
+      await util.updatedisplaychannels(channelId);
+    } catch (error) {
+      console.warn('Could not load channel content:', error);
+    } finally {
+      readPost(attrs);
+      loading = false;
+      loadError = post.mMeta ? '' : 'Could not load this post. Try again.';
+      m.redraw();
+    }
+  };
   return {
     oninit: async (v) => {
-      if (Data.Posts[v.attrs.channelId] && Data.Posts[v.attrs.channelId][v.attrs.msgId]) {
-        post = Data.Posts[v.attrs.channelId][v.attrs.msgId].post;
-      }
-      if (post) {
-        post.mFiles.map(async (file) => {
-          const res = await rs.rsJsonApiRequest('/rsfiles/alreadyHaveFile', {
-            // checks if the file is already there with the user
-            hash: file.mHash,
-          });
-          filesInfo[file.mHash] = res.body;
-        });
-      }
+      readPost(v.attrs);
+      const pending = post.mMeta ? null : loadPost(v.attrs);
       await peopleUtil.ownIds((data) => {
         ownId = data;
         for (let i = 0; i < ownId.length; i++) {
@@ -738,21 +763,32 @@ const PostView = () => {
         identitiesLoading = false;
       });
       fileDown.Downloads.loadStatus(); // for retrieving downloading files.
+      await pending;
     },
+    onbeforeupdate: (v) => readPost(v.attrs),
     view: (v) => {
+      const back = {
+        label: 'Back to channel',
+        onclick: () => m.route.set('/channels/:tab/:mGroupId', {
+          tab: m.route.param().tab,
+          mGroupId: m.route.param().mGroupId,
+        }),
+      };
+      if (!post.mMeta) {
+        return [
+          m(widget.PageHead, { back, title: '' }),
+          m('.widget__body', loadError && !loading
+            ? m(widget.ListError, { message: loadError, onretry: () => loadPost(v.attrs) })
+            : m(widget.Loading, { label: 'Loading post…' })),
+        ];
+      }
       const message = post.mMsg || '';
       const messageText = String(message).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
       const hasEmbeddedImage = /<img\b|data:image\//i.test(String(message));
       const hasLongMessage = messageText.length > 280 || hasEmbeddedImage;
       return [
       m(widget.PageHead, {
-        back: {
-          label: 'Back to channel',
-          onclick: () => m.route.set('/channels/:tab/:mGroupId', {
-            tab: m.route.param().tab,
-            mGroupId: m.route.param().mGroupId,
-          }),
-        },
+        back,
         title: post.mMeta.mMsgName,
       }),
       m('.widget__body', [
@@ -770,7 +806,7 @@ const PostView = () => {
             util.FilesTable,
             m(
               'tbody',
-              post.mFiles.map((file) =>
+              (post.mFiles || []).map((file) =>
                 m('tr', [
                   m('td.channel-file__name[data-label=File name]', file.mName),
                   m('td.channel-file__size[data-label=Size]', rs.formatBytes(file.mSize.xint64)),
