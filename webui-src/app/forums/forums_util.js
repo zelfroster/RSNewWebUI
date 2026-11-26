@@ -261,7 +261,8 @@ const DisplayForumsFromList = () => {
             ]),
           ])),
           m('td.group-row__posts', summary.mVisibleMsgCount || 0),
-          m('td.group-row__activity', formatTimestamp(summary.mLastPost)),
+          m('td.group-row__activity', getTimestampValue(summary.mLastPost)
+            ? formatTimestamp(summary.mLastPost) : '—'),
         ]
       );
     },
@@ -328,6 +329,7 @@ module.exports = {
   ThreadsTable,
   popupmessage,
   updatedisplayforums,
+  loadRetentionPeriods,
   loadPostContent,
   getTimestampValue,
   formatTimestamp,

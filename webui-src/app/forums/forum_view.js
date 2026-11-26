@@ -528,6 +528,7 @@ function distributionLabel(circleType, circleId) {
 
 //  The core answers in seconds; the desktop client reports both in days.
 function durationLabel(seconds) {
+  if (seconds === undefined) return '…';
   if (!seconds) return 'Unlimited';
   const days = Math.round(seconds / 86400);
   if (days >= 365) {
@@ -773,6 +774,7 @@ const ForumView = () => {
         });
         if (res.body.retval) {
           util.Data.DisplayForums[v.attrs.id].isSubscribed = !fsubscribed;
+          if (!fsubscribed) util.loadRetentionPeriods(v.attrs.id);
           if (v.attrs.onSubscriptionChange) await v.attrs.onSubscriptionChange();
           m.redraw();
         }
