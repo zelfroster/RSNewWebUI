@@ -366,12 +366,26 @@ const EmojiPicker = () => {
     m.redraw();
   };
 
+  //  Focus usually stays on the emoji button, outside the picker, so Escape
+  //  is caught on the document too. preventDefault keeps a dialog around the
+  //  picker open: its cancel is the default action of this key.
+  const onEscape = (event) => {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    event.stopPropagation();
+    const trigger = root && root.parentElement.querySelector('button');
+    if (trigger) trigger.focus();
+    if (close) close();
+    m.redraw();
+  };
+
   return {
     oncreate: (vnode) => {
       root = vnode.dom;
       if (root.showPopover) root.showPopover();
       positionPicker();
       document.addEventListener('click', onDocClick);
+      document.addEventListener('keydown', onEscape);
       window.addEventListener('resize', positionPicker);
       window.addEventListener('scroll', positionPicker, true);
       if (window.visualViewport) {
@@ -379,9 +393,13 @@ const EmojiPicker = () => {
         window.visualViewport.addEventListener('scroll', positionPicker);
       }
     },
-    onbeforeremove: motion.exit,
+    onbeforeremove: (vnode) => {
+      document.removeEventListener('keydown', onEscape);
+      return motion.exit(vnode);
+    },
     onremove: () => {
       document.removeEventListener('click', onDocClick);
+      document.removeEventListener('keydown', onEscape);
       window.removeEventListener('resize', positionPicker);
       window.removeEventListener('scroll', positionPicker, true);
       if (window.visualViewport) {
@@ -401,13 +419,7 @@ const EmojiPicker = () => {
         popover: 'manual',
         role: 'dialog',
         'aria-label': 'Emoji picker',
-        onkeydown: (event) => {
-          if (event.key !== 'Escape') return;
-          event.stopPropagation();
-          const trigger = root.parentElement.querySelector('button');
-          if (trigger) trigger.focus();
-          if (close) close();
-        },
+        onkeydown: onEscape,
         onclick: (e) => e.stopPropagation(),
       }, [
         m(widget.SearchField, {

@@ -210,6 +210,9 @@
 
   &--split {
     display: grid;
+    //  One column the pane's width: a long word or a wide table in a post must
+    //  scroll inside the reader, not push the actions out of view.
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, var(--forum-thread-split)) var(--s3) minmax(0, 1fr);
   }
 

@@ -291,8 +291,9 @@ const ThreadsTable = () => {
 //  Flags the summaries the list is already holding. Every tab's array is built
 //  by filtering the same objects, so one pass covers all of them.
 function filterForums(list, query) {
+  const needle = (query || '').toLowerCase();
   (list || []).forEach((forum) => {
-    forum.isSearched = !query || (forum.mGroupName || '').toLowerCase().includes(query);
+    forum.isSearched = !needle || (forum.mGroupName || '').toLowerCase().includes(needle);
   });
 }
 
@@ -309,7 +310,7 @@ const SearchBar = () => {
         },
         oninput: (e) => {
           forumsSearchString = e.target.value;
-          filterForums(v.attrs.list, forumsSearchString.toLowerCase());
+          filterForums(v.attrs.list, forumsSearchString);
         },
       });
     },
