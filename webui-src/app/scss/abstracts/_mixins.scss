@@ -629,3 +629,13 @@
     outline-offset: -2px;
   }
 }
+
+/// Rules for the dark appearance only: chosen in Config, or the system's
+/// when the user left it on System. Same selectors as the dark palette.
+@mixin dark-appearance {
+  :root[data-appearance='dark'] & { @content; }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-appearance='light']):not([data-appearance='dark']) & { @content; }
+  }
+}
