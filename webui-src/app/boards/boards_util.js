@@ -55,12 +55,20 @@ function requestBoardContent(path, data) {
   });
 }
 
+/**
+ * How a content request ended. Only a cut answer is worth asking again in
+ * smaller pieces: a slow core or an error would just fail again, slower.
+ */
+const BATCH_LOADED = 'loaded';
+const BATCH_CUT = 'cut';
+const BATCH_FAILED = 'failed';
+
 async function updateContent(content, boardid) {
   const requested = Array.isArray(content) ? content : [content];
   const msgIds = requested
     .map((item) => item.mMsgId || item.msgId || item)
     .filter(Boolean);
-  if (msgIds.length === 0) return false;
+  if (msgIds.length === 0) return BATCH_FAILED;
   try {
     const res = await requestBoardContent('/rsPosted/getBoardContent', {
       boardId: boardid,
@@ -100,30 +108,31 @@ async function updateContent(content, boardid) {
           m.redraw();
         }
       }
-      return true;
+      return BATCH_LOADED;
     }
-    if (!res || res.status !== 200 || res.body?.retval === false) {
+    //  No answer at all: the core is gone, so stop loading the board.
+    if (!res || (res.status === 0 && !res.timedOut)) {
       throw new Error('Could not load board posts. Please try again.');
     }
+    //  The catch path of rsJsonApiRequest gives a cut 200 an empty body.
+    return res.status === 200 && res.body?.retval === undefined ? BATCH_CUT : BATCH_FAILED;
   } catch (err) {
     console.warn('updateContent error:', err);
     throw err;
   }
-  return false;
 }
 
 // Same as the channel loader: a post can carry base64 media, and the JSON API
-// cuts a response it cannot flush in time. Retry a failed batch as two smaller
+// cuts a response it cannot flush in time. Retry a cut batch as two smaller
 // ones until the offending post is isolated, instead of dropping the 25 of them
-// on a single console.warn. Do not split when the core stopped answering, or
-// one batch would turn into 2N-1 doomed requests.
+// on a single console.warn. Any other failure is not split: against a slow or
+// failing core one batch would turn into 2N-1 doomed requests.
 async function updateContentBatch(contentIds, boardid) {
-  const loaded = await updateContent(contentIds, boardid);
-  if (loaded || contentIds.length <= 1 || !rs.connectionState.status) {
-    if (!loaded) {
-      console.warn('Unable to load board content item', contentIds[0]);
-    }
-    return loaded;
+  const result = await updateContent(contentIds, boardid);
+  if (result === BATCH_LOADED) return true;
+  if (result !== BATCH_CUT || contentIds.length <= 1) {
+    console.warn('Unable to load board content item', contentIds[0]);
+    return false;
   }
 
   const middle = Math.ceil(contentIds.length / 2);
@@ -292,24 +301,29 @@ const BoardTable = () => {
   };
 };
 
+//  Module level: the search field is gone while a board is open, and the list
+//  refresh brings new objects. Both must still show the filter that applies.
+let boardsSearchString = '';
+
+function filterBoards(list, value) {
+  const query = (value || '').toLowerCase();
+  (list || []).forEach((board) => {
+    const name = (board.mGroupName || board.name || '').toLowerCase();
+    board.isSearched = !query || name.includes(query);
+  });
+}
+
 const SearchBar = () => {
-  let searchString = '';
   return {
-    view: (vnode) =>
-      m(widget.SearchField, {
+    view: (vnode) => {
+      filterBoards(vnode.attrs.list, boardsSearchString);
+      return m(widget.SearchField, {
         placeholder: 'Search boards',
-        value: searchString,
-        oninput: (e) => {
-          searchString = e.target.value;
-          const query = searchString.toLowerCase();
-          if (vnode.attrs.list) {
-            vnode.attrs.list.forEach((board) => {
-              const name = (board.mGroupName || board.name || '').toLowerCase();
-              board.isSearched = name.includes(query);
-            });
-          }
-        },
-      }),
+        value: boardsSearchString,
+        onclear: () => { boardsSearchString = ''; },
+        oninput: (e) => { boardsSearchString = e.target.value; },
+      });
+    },
   };
 };
 

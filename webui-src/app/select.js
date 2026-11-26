@@ -43,10 +43,13 @@ const Select = () => {
   const close = () => { open = false; };
   const choose = (index) => {
     if (!options[index] || options[index].disabled) return;
-    selected = index;
-    native.selectedIndex = index;
-    native.dispatchEvent(new Event('input', { bubbles: true }));
-    native.dispatchEvent(new Event('change', { bubbles: true }));
+    //  Like a native select: picking the current option again fires nothing.
+    if (index !== native.selectedIndex) {
+      selected = index;
+      native.selectedIndex = index;
+      native.dispatchEvent(new Event('input', { bubbles: true }));
+      native.dispatchEvent(new Event('change', { bubbles: true }));
+    }
     close();
     trigger.focus();
     m.redraw();
