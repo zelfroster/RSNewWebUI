@@ -10,6 +10,22 @@ General site-wide rules
   display: none !important;
 }
 
+/* HTML written by other clients: mail, forum posts, channel posts, and the
+   quoted mail in the composer. Their inline colours assume a light page, so in
+   dark mode drop them, as the desktop forum reader does. Links keep the brand. */
+.mail-body-container,
+.forum-post-content,
+.post-description__text,
+.compose-mail__message-body {
+  @include dark-appearance {
+    [style*='color'],
+    font[color] { color: inherit !important; }
+    [style*='background'],
+    [bgcolor] { background: transparent !important; }
+    a[style*='color'] { color: var(--brand) !important; }
+  }
+}
+
 #main {
   height: 100vh;
   /* Mobile browsers count the collapsible URL bar in 100vh, which pushes the

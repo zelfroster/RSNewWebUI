@@ -606,9 +606,9 @@ const Layout = () => {
           //  properties, and `font-weight: var(--w-label)` silently resolved
           //  to normal weight in whatever opened the mail.
           const attHtml = `
-            <br/><hr style="border:none;border-top:1px solid #e2e8f0;margin:1rem 0;"/><div style="margin-top:10px;font-weight:500;color:#475569;font-size:0.9rem;">Attachments (${attachments.length}):</div>
+            <br/><hr style="border:none;border-top:1px solid #e2e8f0;margin:1rem 0;"/><div style="margin-top:10px;font-weight:500;font-size:0.9rem;">Attachments (${attachments.length}):</div>
             <ul style="list-style:none;padding:0;margin:6px 0;">
-              ${attachments.map((att) => `<li style="padding:4px 0;color:#1e293b;font-size:0.875rem;">📎 <b>${att.name}</b> <span style="color:#94a3b8;font-size:0.8em;">(${att.size})</span></li>`).join('')}
+              ${attachments.map((att) => `<li style="padding:4px 0;font-size:0.875rem;">📎 <b>${att.name}</b> <span style="opacity:0.7;font-size:0.8em;">(${att.size})</span></li>`).join('')}
             </ul>
           `;
           fullMailBody += attHtml;

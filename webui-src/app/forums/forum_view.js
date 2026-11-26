@@ -596,10 +596,11 @@ const ForumDetails = () => ({
  *   forumId, msgId  which post to show
  *   ownId           identities that may reply
  *   rows            the visible rows, for the previous/next arrows
+ *   readingOrder    every post in reading order, for next unread
  */
 const ThreadReader = () => ({
   view: (v) => {
-    const { forumId, msgId, ownId, rows } = v.attrs;
+    const { forumId, msgId, ownId, rows, readingOrder } = v.attrs;
     const struct = util.Data.Threads[forumId] && util.Data.Threads[forumId][msgId];
     if (!struct) return m('.forum-reader', m('p.forum-reader__empty', 'Loading...'));
 
@@ -611,8 +612,8 @@ const ThreadReader = () => ({
       mGroupId: forumId,
       mMsgId: row.meta.mOrigMsgId,
     });
-    const nextUnread = rows
-      .slice(at + 1)
+    const nextUnread = readingOrder
+      .slice(readingOrder.findIndex((row) => row.meta.mOrigMsgId === msgId) + 1)
       .find((row) => util.isUnread(row.meta.mMsgStatus));
 
     return m('.forum-reader', [
@@ -697,6 +698,8 @@ const ForumView = () => {
     (value) => Number.isFinite(value) && value >= THREAD_SPLIT_MIN && value <= THREAD_SPLIT_MAX);
   //  Threads start closed. Only what you open is in here.
   const expanded = new Set();
+  //  The post whose parents were last opened, so the user can close them again.
+  let expandedFor = null;
 
   const updateThreadSplit = (splitter, clientY) => {
     const panes = splitter.parentElement;
@@ -780,7 +783,8 @@ const ForumView = () => {
       const query = threadSearch.trim().toLowerCase();
       //  A post opened from a link may sit inside a closed thread, so open its
       //  parents first or the row it points at is not on screen.
-      if (v.attrs.msgId && posts[v.attrs.msgId]) {
+      if (v.attrs.msgId && posts[v.attrs.msgId] && expandedFor !== v.attrs.msgId) {
+        expandedFor = v.attrs.msgId;
         let parent = posts[v.attrs.msgId].thread.mMeta.mParentId;
         while (parent && posts[parent]) {
           expanded.add(parent);
@@ -790,13 +794,14 @@ const ForumView = () => {
 
       //  A table cannot nest rows, so each row carries its own depth.
       const rows = [];
+      const sortedReplies = (struct) => replyList(struct).sort(
+        (a, b) =>
+          getTimestampValue(a.thread.mMeta.mPublishTs) -
+          getTimestampValue(b.thread.mMeta.mPublishTs)
+      );
       const collect = (struct, depth) => {
         const meta = struct.thread.mMeta;
-        const replies = replyList(struct).sort(
-          (a, b) =>
-            getTimestampValue(a.thread.mMeta.mPublishTs) -
-            getTimestampValue(b.thread.mMeta.mPublishTs)
-        );
+        const replies = sortedReplies(struct);
         //  A search that hides its own matches is useless, so searching opens
         //  every thread.
         const open = Boolean(query) || expanded.has(meta.mMsgId);
@@ -811,14 +816,22 @@ const ForumView = () => {
           replies.forEach((reply) => collect(reply, depth + 1));
         }
       };
-      roots
+      const orderedRoots = roots
         .filter((struct) => !query || subtreeMatches(struct, query))
         .sort(
           (a, b) =>
             (b.thread.mMeta.mMostRecentTsInThread || 0) -
             (a.thread.mMeta.mMostRecentTsInThread || 0)
-        )
-        .forEach((struct) => collect(struct, 0));
+        );
+      orderedRoots.forEach((struct) => collect(struct, 0));
+      //  Every post in reading order, closed threads too. Next unread walks this,
+      //  like the desktop, which opens a thread to reach its unread replies.
+      const readingOrder = [];
+      const walk = (struct) => {
+        readingOrder.push({ meta: struct.thread.mMeta });
+        sortedReplies(struct).forEach(walk);
+      };
+      orderedRoots.forEach(walk);
 
       const openThread = (row) => m.route.set('/forums/:tab/:mGroupId/:mMsgId', {
         tab: m.route.param().tab,
@@ -972,7 +985,7 @@ const ForumView = () => {
                       [
                         m('td.forum-thread-row__cell',
                           m('.forum-thread-row__inner', { style: `--depth:${row.depth}` }, [
-                            row.replies
+                            row.replies && !query
                               ? m('button.forum-thread-row__toggle[type=button]', {
                                 title: row.open ? 'Collapse replies' : 'Expand replies',
                                 'aria-label': row.open ? 'Collapse replies' : 'Expand replies',
@@ -1036,6 +1049,7 @@ const ForumView = () => {
               msgId: v.attrs.msgId,
               ownId,
               rows,
+              readingOrder,
             }),
           ]),
         ),
