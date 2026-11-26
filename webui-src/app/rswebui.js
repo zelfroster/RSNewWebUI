@@ -205,10 +205,16 @@ function rsJsonApiRequest(
         //  is not a lost connection: only status 0, i.e. no HTTP response at
         //  all, is. Flipping the flag on every error made the status LED blink
         //  red on each optional endpoint that is probed.
-        connectionState.status = result.status !== 0;
+        //  Mithril reports a timed-out request as status 0, like a refused
+        //  connection. A request we gave up on says nothing about the core.
+        result.timedOut = result.status === 0 && options.timeout > 0
+          && performance.now() - startedAt >= options.timeout;
+        if (!result.timedOut) connectionState.status = result.status !== 0;
         if (result.status === 401 || result.status === 403) {
           setKeys(loginKey.username, loginKey.passwd, loginKey.url, false);
           m.route.set('/');
+        } else if (result.timedOut) {
+          console.warn('[RS] Request timed out:', path);
         } else if (result.status === 0) {
           console.error('[RS] Retroshare-jsonapi not available.');
         } else {
