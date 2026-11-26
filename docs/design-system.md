@@ -195,10 +195,13 @@ Measurements above are in CSS pixels. Use token names in styles, not literals.
   removed graphs stop their frame loop; reduced motion disables settling.
 - Graph view controls live inside the top-right corner; spacing is top-left,
   the legend bottom-left, and the interaction hint bottom-right. Drawing leaves
-  room for these overlays. Nodes and labels stay within that usable rectangle.
+  room for these overlays. Drawing is clipped to that usable rectangle. Zoom
+  changes the view, never stored peer positions. Drag empty space to pan to
+  off-screen peers; Fit view brings the whole graph back.
 - Peer names are visible by default, with cached text measurements and a Names
   toggle for crowded graphs. Clicking a node focuses it; Page Up/Down switches
-  keyboard focus between peers, and arrow keys move the focused peer.
+  keyboard focus between peers, and arrow keys move the focused peer. Keyboard
+  navigation pans the view when needed to keep that peer visible.
 - Spacing scales spring and repulsion distances without refitting the camera,
   so changing it visibly changes density. Fit view remains an explicit action.
 - The spacing slider retains native keyboard/touch behavior, with a thin filled
