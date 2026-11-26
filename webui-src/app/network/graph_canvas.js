@@ -16,6 +16,8 @@ const GraphCanvas = () => {
   let dragged = null;
   let hovered = null;
   let pointerId = null;
+  let panPoint = null;
+  let dragOffset;
   let bounds;
   let palette;
   let resizeObserver;
@@ -53,6 +55,11 @@ const GraphCanvas = () => {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
     context.clearRect(0, 0, bounds.width, bounds.height);
+    const area = viewport.area();
+    context.save();
+    context.beginPath();
+    context.rect(area.x, area.y, area.width, area.height);
+    context.clip();
     context.strokeStyle = palette.edge;
     context.lineWidth = 1;
     context.globalAlpha = simulation.links.length > 500 ? 0.3 : 0.65;
@@ -68,11 +75,11 @@ const GraphCanvas = () => {
     const query = attrs.search.trim().toLocaleLowerCase();
     const labels = [];
     const occupied = [];
-    const area = viewport.area();
     context.font = `${palette.fontSize}px ${palette.font}`;
     context.textBaseline = 'middle';
     const drawNode = (body, queueLabel = true) => {
       const { x, y } = screenOf(body);
+      if (!viewport.contains({ x, y })) return;
       const match = query && body.name.toLocaleLowerCase().includes(query);
       const selected = body.id === attrs.selectedId || body.id === dragged || body.id === hovered;
       const radius = nodeRadius(body);
@@ -138,6 +145,7 @@ const GraphCanvas = () => {
       context.fillText(text, rect.x + palette.labelGap / 2, rect.y + rect.height / 2, width);
     });
     foreground.forEach((body) => drawNode(body, false));
+    context.restore();
   }
 
   function labelFor(body) {
@@ -149,29 +157,13 @@ const GraphCanvas = () => {
     return label;
   }
 
-  //  The layout is kept inside the area seen at 100 %. Zoomed in, nodes past
-  //  the edge are drawn on it by screenOf, but keep their real place, so
-  //  zooming back out shows the layout as it was.
-  function constrain() {
-    if (!bounds.width || !bounds.height) return;
-    const radius = Math.max(0, ...simulation.bodies.map(nodeRadius));
-    simulation.setBounds(viewport.worldBounds(radius + palette.labelGap + palette.stroke, 1));
-  }
-
   function screenOf(body) {
-    const point = viewport.toScreen(body.position, attrs.zoom);
-    const area = viewport.area();
-    const pad = Math.min(nodeRadius(body) + palette.labelGap + palette.stroke, area.width / 3, area.height / 3);
-    return {
-      x: Math.max(area.x + pad, Math.min(area.x + area.width - pad, point.x)),
-      y: Math.max(area.y + pad, Math.min(area.y + area.height - pad, point.y)),
-    };
+    return viewport.toScreen(body.position, attrs.zoom);
   }
 
   function tick() {
     frame = 0;
     const settling = remaining > 0 && bounds.width > 0 && bounds.height > 0 && performance.now() < settleUntil && !reduceQuery.matches;
-    constrain();
     if (Math.abs(attrs.edgeLength - appliedSpacing) > 0.01) {
       const next = reduceQuery.matches || Math.abs(attrs.edgeLength - appliedSpacing) < 0.1
         ? attrs.edgeLength : appliedSpacing + (attrs.edgeLength - appliedSpacing) * 0.22;
@@ -179,7 +171,7 @@ const GraphCanvas = () => {
       appliedSpacing = next;
     }
     const energy = settling ? simulation.step(dragged, appliedSpacing) : 0;
-    if (autoFit) { fit(); constrain(); }
+    if (autoFit) fit();
     draw();
     remaining = Math.max(0, remaining - 1);
     const adjusting = Math.abs(attrs.edgeLength - appliedSpacing) > 0.01;
@@ -228,21 +220,28 @@ const GraphCanvas = () => {
     };
   };
   const down = (event) => {
-    if (event.button !== 0 || dragged) return;
+    if (event.button !== 0 || pointerId !== null) return;
     const point = pointerPoint(event);
+    if (!viewport.contains(point)) return;
     const hit = nearestBody(point);
-    if (!hit) return;
     event.preventDefault();
     autoFit = false;
-    dragged = hit.id;
     pointerId = event.pointerId;
     canvas.setPointerCapture(pointerId);
     canvas.focus({ preventScroll: true });
-    attrs.onselect(hit.id);
-    wake(true);
+    if (hit) {
+      dragged = hit.id;
+      const world = viewport.toWorld(point, attrs.zoom);
+      dragOffset = { x: hit.position.x - world.x, y: hit.position.y - world.y };
+      attrs.onselect(hit.id);
+    } else {
+      panPoint = point;
+      remaining = 0;
+    }
+    wake(Boolean(hit));
   };
   const move = (event) => {
-    if (!dragged) {
+    if (pointerId === null) {
       const next = nearestBody(pointerPoint(event))?.id || null;
       if (next !== hovered) {
         hovered = next;
@@ -253,15 +252,23 @@ const GraphCanvas = () => {
       return;
     }
     if (event.pointerId !== pointerId) return;
-    const point = viewport.toWorld(pointerPoint(event), attrs.zoom);
-    simulation.move(dragged, point.x, point.y);
-    wake(true);
+    const point = pointerPoint(event);
+    if (dragged) {
+      const world = viewport.toWorld(point, attrs.zoom);
+      simulation.move(dragged, world.x + dragOffset.x, world.y + dragOffset.y);
+    } else {
+      viewport.pan(point.x - panPoint.x, point.y - panPoint.y, attrs.zoom);
+      panPoint = point;
+    }
+    wake(Boolean(dragged));
   };
   function nearestBody(point) {
+    if (!viewport.contains(point)) return;
     let hit;
     let nearest = Infinity;
     simulation.bodies.forEach((body) => {
       const screen = screenOf(body);
+      if (!viewport.contains(screen)) return;
       const distance = Math.hypot(screen.x - point.x, screen.y - point.y);
       if (distance < Math.max(nodeRadius(body), palette.touch / 2) && distance < nearest) { hit = body; nearest = distance; }
     });
@@ -278,13 +285,16 @@ const GraphCanvas = () => {
     const padding = Math.max(palette.padding, radius + palette.labelGap + palette.stroke + palette.gap);
     viewport.fit(simulation.bodies.map((body) => body.position), padding, attrs.zoom);
   };
-  const leave = () => { if (!dragged && hovered) { hovered = null; canvas.title = ''; wake(); } };
+  const leave = () => { if (pointerId === null && hovered) { hovered = null; canvas.title = ''; wake(); } };
   const up = (event) => {
-    if (!dragged || event.pointerId !== pointerId) return;
+    if (pointerId === null || event.pointerId !== pointerId) return;
+    const physics = Boolean(dragged);
     dragged = null;
-    if (canvas.hasPointerCapture(pointerId)) canvas.releasePointerCapture(pointerId);
+    panPoint = null;
+    const released = pointerId;
     pointerId = null;
-    wake(true);
+    if (canvas.hasPointerCapture(released)) canvas.releasePointerCapture(released);
+    wake(physics);
   };
   const wheel = (event) => {
     if (!event.deltaY) return;
@@ -297,7 +307,13 @@ const GraphCanvas = () => {
       event.preventDefault();
       const index = simulation.bodies.findIndex((body) => body.id === attrs.selectedId);
       const next = (index + (event.key === 'PageDown' ? 1 : -1) + simulation.bodies.length) % simulation.bodies.length;
-      if (simulation.bodies[next]) attrs.onselect(simulation.bodies[next].id);
+      const body = simulation.bodies[next];
+      if (body) {
+        autoFit = false;
+        viewport.reveal(body.position, nodeRadius(body) + palette.labelGap, attrs.zoom);
+        attrs.onselect(body.id);
+        wake();
+      }
       return;
     }
     const directions = { ArrowLeft: [-16, 0], ArrowRight: [16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] };
@@ -310,6 +326,7 @@ const GraphCanvas = () => {
     const screen = viewport.toScreen(body.position, attrs.zoom);
     const point = viewport.toWorld({ x: screen.x + dx, y: screen.y + dy }, attrs.zoom);
     simulation.move(body.id, point.x, point.y);
+    viewport.reveal(body.position, nodeRadius(body) + palette.labelGap, attrs.zoom);
     wake(true);
   };
 
@@ -390,7 +407,7 @@ const GraphCanvas = () => {
       const active = attrs.nodes.find((node) => node.id === attrs.selectedId)?.name || 'You';
       return m('canvas.network-graph__canvas[tabindex=0]', {
         role: 'img',
-        'aria-label': `Network graph with ${attrs.nodes.length} peers and ${attrs.edges.length} connections. Active peer: ${active}. Page Up and Page Down choose a peer; arrow keys move it.`,
+        'aria-label': `Network graph with ${attrs.nodes.length} peers and ${attrs.edges.length} connections. Active peer: ${active}. Drag the background to pan. Page Up and Page Down choose a peer; arrow keys move it.`,
         'aria-describedby': 'network-graph-help',
       }, 'Click a peer or use Page Up and Page Down to choose it, then use the arrow keys to move it.');
     },

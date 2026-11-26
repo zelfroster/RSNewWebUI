@@ -198,7 +198,7 @@ const NetworkGraph = () => {
             m('span', [m('i.network-graph__key.network-graph__key--online'), ' Online']),
             m('span', [m('i.network-graph__key.network-graph__key--offline'), ' Offline / discovered']),
           ]),
-          m('p#network-graph-help.network-graph__help', 'Drag peers · Scroll to zoom'),
+          m('p#network-graph-help.network-graph__help', 'Drag peers or background · Scroll to zoom'),
         ]),
       ]),
     ]),

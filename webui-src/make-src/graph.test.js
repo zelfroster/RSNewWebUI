@@ -184,3 +184,26 @@ test('fit remains stable at non-default zoom instead of shrinking on each frame'
     assert.equal(JSON.stringify(positions), before);
   }
 });
+
+test('panning and revealing peers preserve projection at every zoom', () => {
+  for (const zoom of [0.5, 1, 2.5]) for (const width of [390, 1200]) {
+    const camera = {};
+    const viewport = createViewport(camera);
+    viewport.resize(width, 700);
+    viewport.setInsets({ left: 8, right: 8, top: 80, bottom: 40 });
+    const point = { x: 900, y: 600 };
+    const before = viewport.toScreen(point, zoom);
+    viewport.pan(60, -30, zoom);
+    const after = viewport.toScreen(point, zoom);
+    assert.ok(Math.abs(after.x - before.x - 60) < 1e-8);
+    assert.ok(Math.abs(after.y - before.y + 30) < 1e-8);
+    viewport.reveal(point, 20, zoom);
+    const screen = viewport.toScreen(point, zoom);
+    assert.ok(viewport.contains(screen, 20 - 1e-8));
+    const restored = viewport.toWorld(screen, zoom);
+    assert.ok(Math.hypot(restored.x - point.x, restored.y - point.y) < 1e-8);
+    assert.deepEqual(point, { x: 900, y: 600 });
+    viewport.fit([{ x: 200, y: 100 }, point], 24, zoom);
+    assert.ok(viewport.contains(viewport.toScreen(point, zoom)));
+  }
+});

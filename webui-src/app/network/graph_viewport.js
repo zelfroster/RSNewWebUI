@@ -26,6 +26,29 @@ function createViewport(camera = {}) {
     };
   };
 
+  function pan(dx, dy, zoom = 1) {
+    if (![dx, dy, zoom].every(Number.isFinite) || zoom <= 0) return;
+    const rect = area();
+    camera.x -= dx * camera.width / rect.width / zoom;
+    camera.y -= dy * camera.height / rect.height / zoom;
+  }
+
+  function contains(point, padding = 0) {
+    const rect = area();
+    return point.x >= rect.x + padding && point.x <= rect.x + rect.width - padding &&
+      point.y >= rect.y + padding && point.y <= rect.y + rect.height - padding;
+  }
+
+  function reveal(point, padding, zoom = 1) {
+    const rect = area();
+    const screen = toScreen(point, zoom);
+    const px = Math.min(padding, rect.width / 3);
+    const py = Math.min(padding, rect.height / 3);
+    const x = Math.max(rect.x + px, Math.min(rect.x + rect.width - px, screen.x));
+    const y = Math.max(rect.y + py, Math.min(rect.y + rect.height - py, screen.y));
+    pan(x - screen.x, y - screen.y, zoom);
+  }
+
   function fit(points, padding, zoom = 1) {
     if (!points.length) return;
     const rect = area();
@@ -58,6 +81,9 @@ function createViewport(camera = {}) {
     worldBounds,
     toScreen,
     toWorld,
+    pan,
+    contains,
+    reveal,
     fit,
   };
 }
