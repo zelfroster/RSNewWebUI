@@ -38,8 +38,9 @@ function number64(value) {
 }
 
 function formatSpeed(bytesPerSec) {
+  //  The core decays an idle rate without ever reaching 0. Under 1 B/s is idle.
   const bps = Number(bytesPerSec) || 0;
-  if (bps <= 0) return '0 B/s';
+  if (bps < 1) return '0 Bytes/s';
   return `${rs.formatBytes(bps)}/s`;
 }
 
@@ -148,6 +149,10 @@ const Turtle = {
         Turtle.hashesInfo = Array.isArray(infoBody.hashes_info || infoBody.hashesInfo)
           ? (infoBody.hashes_info || infoBody.hashesInfo)
           : [];
+        //  A finished download leaves the list; its chip, and its filter, go too.
+        if (!Turtle.hashesInfo.some((h) => String(h[0] || '') === Turtle.selectedHash)) {
+          Turtle.selectedHash = '';
+        }
         Turtle.tunnelsInfo = Array.isArray(infoBody.tunnels_info || infoBody.tunnelsInfo)
           ? (infoBody.tunnels_info || infoBody.tunnelsInfo)
           : [];
@@ -194,6 +199,7 @@ const Turtle = {
 
   oninit() {
     Turtle.trafficInfo = null;
+    Turtle.selectedHash = '';
     Turtle.hashesInfo = [];
     Turtle.tunnelsInfo = [];
     Turtle.searchReqsInfo = [];
@@ -419,9 +425,9 @@ const Turtle = {
                   m('td', m('span.bandwidth-peer-name', toPeer)),
                   m('td.turtle-cell--mono', { title: hash }, hash ? `${hash.slice(0, 16)}…` : '–'),
                   m('td', ageStr),
-                  m('td', speedBps > 0
+                  m('td', speedBps >= 1
                     ? m('strong.turtle-speed--active', formatSpeed(speedBps))
-                    : m('span.turtle-speed--idle', '0 B/s')),
+                    : m('span.turtle-speed--idle', formatSpeed(0))),
                 ]);
               })),
             ]))
