@@ -218,7 +218,8 @@ const DisplayChannelsFromList = () => {
             ]),
           ])),
           m('td.group-row__posts', summary.mVisibleMsgCount || 0),
-          m('td.group-row__activity', formatTimestamp(summary.mLastPost)),
+          m('td.group-row__activity', rs.getTimestampValue(summary.mLastPost)
+            ? formatTimestamp(summary.mLastPost) : '—'),
         ]
       );
     },

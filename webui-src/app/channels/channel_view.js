@@ -462,7 +462,7 @@ const ChannelView = () => {
   let cimage = '';
   let cdescription = '';
   let cauthor = '';
-  let csubscribed = {};
+  let csubscribed = false;
   let mychannel = false;
   let cposts = 0;
   let plist = {};
@@ -472,12 +472,13 @@ const ChannelView = () => {
   //  instead of both at once.
   const brokenThumbnails = new Set();
   const toggleSubscription = async (attrs) => {
+    if (!Data.DisplayChannels[attrs.id]) return;
     const res = await rs.rsJsonApiRequest('/rsgxschannels/subscribeToChannel', {
       channelId: attrs.id, subscribe: !csubscribed,
     });
     if (res.body.retval) {
       csubscribed = !csubscribed;
-      Data.DisplayChannels[attrs.id].isSubscribed = csubscribed;
+      if (Data.DisplayChannels[attrs.id]) Data.DisplayChannels[attrs.id].isSubscribed = csubscribed;
       if (attrs.onSubscriptionChange) attrs.onSubscriptionChange();
       m.redraw();
     }
@@ -532,6 +533,10 @@ const ChannelView = () => {
         m.redraw();
       });
     },
+    onbeforeupdate: (v) => {
+      readChannel(v.attrs.id);
+      plist = Data.Posts[v.attrs.id] || {};
+    },
     view: (v) => [
       m(widget.PageHead, {
         class: 'channel-detail-head',
@@ -557,6 +562,7 @@ const ChannelView = () => {
           m('button.is-primary',
             {
               class: csubscribed ? 'channel-subscription--subscribed' : '',
+              disabled: !Data.DisplayChannels[v.attrs.id],
               onclick: () => toggleSubscription(v.attrs),
             }, [icon('bookmark'), csubscribed ? 'Subscribed' : 'Subscribe']),
           m(widget.Menu, {
@@ -567,6 +573,7 @@ const ChannelView = () => {
               label: csubscribed ? 'Unsubscribe' : 'Subscribe',
               icon: 'bookmark',
               danger: csubscribed,
+              disabled: !Data.DisplayChannels[v.attrs.id],
               onclick: () => toggleSubscription(v.attrs),
             }],
           }),

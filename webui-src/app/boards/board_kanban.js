@@ -243,7 +243,11 @@ function BoardCard() {
         ? new Date(Number(typeof publishTs === 'object' ? publishTs.xint64 : publishTs) * 1000)
         : null;
       const compactDate = publishedDate && !isNaN(publishedDate.getTime())
-        ? publishedDate.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        ? publishedDate.toLocaleString(undefined, {
+          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+          //  An old post must not read like a recent one.
+          year: publishedDate.getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
+        })
         : '';
 
       // RsPostedPost keeps calculated vote totals on the post, not mMeta.
