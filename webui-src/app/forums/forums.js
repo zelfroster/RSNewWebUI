@@ -27,14 +27,8 @@ const getForums = {
       getForums.Popular = res.body.forums;
       getForums.All = [...res.body.forums].sort((a, b) => (b.mPop || 0) - (a.mPop || 0));
       getForums.Other = getForums.All;
-      getForums.Subscribed = getForums.All.filter(
-        (forum) =>
-          forum.mSubscribeFlags === util.GROUP_SUBSCRIBE_SUBSCRIBED ||
-          forum.mSubscribeFlags === util.GROUP_MY_FORUM
-      );
-      getForums.MyForums = getForums.All.filter(
-        (forum) => forum.mSubscribeFlags === util.GROUP_MY_FORUM
-      );
+      getForums.Subscribed = getForums.All.filter((forum) => util.isSubscribed(forum.mSubscribeFlags));
+      getForums.MyForums = getForums.All.filter((forum) => util.isMine(forum.mSubscribeFlags));
       getForums.loaded = true;
       m.redraw();
       await getForums.loadDescriptions();

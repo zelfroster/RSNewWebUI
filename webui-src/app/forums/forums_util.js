@@ -7,7 +7,13 @@ const GROUP_SUBSCRIBE_ADMIN = 0x01; // means: you have the admin key for this gr
 const GROUP_SUBSCRIBE_PUBLISH = 0x02; // means: you have the publish key for thiss group. Typical use: publish key in forums are shared with specific friends.
 const GROUP_SUBSCRIBE_SUBSCRIBED = 0x04; // means: you are subscribed to a group, which makes you a source for this group to your friend nodes.
 const GROUP_SUBSCRIBE_NOT_SUBSCRIBED = 0x08;
-const GROUP_MY_FORUM = GROUP_SUBSCRIBE_ADMIN + GROUP_SUBSCRIBE_SUBSCRIBED + GROUP_SUBSCRIBE_PUBLISH;
+
+//  mSubscribeFlags is a set of bits, so it is tested, never compared: a group
+//  whose publish key another node shared with this one reads publish +
+//  subscribed (6), which is neither 4 nor admin + publish + subscribed (7).
+//  "Mine" follows the Qt client: subscribed and holding the admin key.
+const isSubscribed = (flags) => (flags & GROUP_SUBSCRIBE_SUBSCRIBED) !== 0;
+const isMine = (flags) => isSubscribed(flags) && (flags & GROUP_SUBSCRIBE_ADMIN) !== 0;
 
 //  rsgxsflags.h: GXS_MSG_STATUS_GUI_UNREAD. It is one bit among several in
 //  mMsgStatus, so it has to be tested, not compared -- `status === 3` was true
@@ -68,9 +74,7 @@ async function updatedisplayforums(keyid) {
     if (res1 && res1.body && res1.body.retval && res1.body.forumsInfo && res1.body.forumsInfo.length > 0) {
       const forumInfo = res1.body.forumsInfo[0];
       const meta = forumInfo.mMeta;
-      const subscribed =
-        meta.mSubscribeFlags === GROUP_SUBSCRIBE_SUBSCRIBED ||
-        meta.mSubscribeFlags === GROUP_MY_FORUM;
+      const subscribed = isSubscribed(meta.mSubscribeFlags);
       Data.DisplayForums[keyid] = {
         // struct for a forum
         name: meta.mGroupName,
@@ -337,6 +341,7 @@ module.exports = {
   GROUP_SUBSCRIBE_NOT_SUBSCRIBED,
   GROUP_SUBSCRIBE_PUBLISH,
   GROUP_SUBSCRIBE_SUBSCRIBED,
-  GROUP_MY_FORUM,
+  isSubscribed,
+  isMine,
   isUnread,
 };

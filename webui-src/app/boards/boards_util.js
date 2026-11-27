@@ -9,7 +9,13 @@ const GROUP_SUBSCRIBE_ADMIN = 0x01; // means: you have the admin key for this gr
 const GROUP_SUBSCRIBE_PUBLISH = 0x02; // means: you have the publish key for thiss group. Typical use: publish key in channels are shared with specific friends.
 const GROUP_SUBSCRIBE_SUBSCRIBED = 0x04; // means: you are subscribed to a group, which makes you a source for this group to your friend nodes.
 const GROUP_SUBSCRIBE_NOT_SUBSCRIBED = 0x08;
-const GROUP_MY_BOARD = GROUP_SUBSCRIBE_ADMIN + GROUP_SUBSCRIBE_SUBSCRIBED + GROUP_SUBSCRIBE_PUBLISH;
+
+//  mSubscribeFlags is a set of bits, so it is tested, never compared: a group
+//  whose publish key another node shared with this one reads publish +
+//  subscribed (6), which is neither 4 nor admin + publish + subscribed (7).
+//  "Mine" follows the Qt client: subscribed and holding the admin key.
+const isSubscribed = (flags) => (flags & GROUP_SUBSCRIBE_SUBSCRIBED) !== 0;
+const isMine = (flags) => isSubscribed(flags) && (flags & GROUP_SUBSCRIBE_ADMIN) !== 0;
 const GXS_VOTE_DOWN = 0x0001;
 const GXS_VOTE_UP = 0x0002;
 
@@ -176,9 +182,7 @@ async function updateDisplayBoards(keyid, details, retry = false) {
             image: details.mGroupImage,
             author: details.mMeta.mAuthorId,
             subscribeFlags: details.mMeta.mSubscribeFlags,
-            isSubscribed:
-              details.mMeta.mSubscribeFlags === GROUP_SUBSCRIBE_SUBSCRIBED ||
-              details.mMeta.mSubscribeFlags === GROUP_MY_BOARD,
+            isSubscribed: isSubscribed(details.mMeta.mSubscribeFlags),
             posts: details.mMeta.mVisibleMsgCount,
             activity: details.mMeta.mLastPost,
             created: details.mMeta.mPublishTs,
@@ -440,7 +444,8 @@ module.exports = {
   GROUP_SUBSCRIBE_PUBLISH,
   GROUP_SUBSCRIBE_SUBSCRIBED,
   GROUP_SUBSCRIBE_NOT_SUBSCRIBED,
-  GROUP_MY_BOARD,
+  isSubscribed,
+  isMine,
   PUBLIC,
   EXTERNAL,
   NODES_GROUP,
