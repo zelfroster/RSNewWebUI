@@ -30,12 +30,11 @@ const getBoards = {
       getBoards.All = popular;
       getBoards.Other = popular.slice(5);
       getBoards.Popular = popular.slice(0, 5);
+      //  Subscribed leaves out the boards listed under My Boards.
       getBoards.Subscribed = boards.filter(
-        (board) => board.mSubscribeFlags === util.GROUP_SUBSCRIBE_SUBSCRIBED
+        (board) => util.isSubscribed(board.mSubscribeFlags) && !util.isMine(board.mSubscribeFlags)
       );
-      getBoards.MyBoards = boards.filter(
-        (board) => board.mSubscribeFlags === util.GROUP_MY_BOARD
-      );
+      getBoards.MyBoards = boards.filter((board) => util.isMine(board.mSubscribeFlags));
       m.redraw();
     } catch (error) {
       getBoards.error = 'Could not load boards.';

@@ -10,8 +10,16 @@ const GROUP_SUBSCRIBE_PUBLISH = 0x02; //  means: you have the publish key for th
 const GROUP_SUBSCRIBE_SUBSCRIBED = 0x04; //  means: you are subscribed to a group, which makes you a source for this group to your friend nodes.
 const GROUP_SUBSCRIBE_NOT_SUBSCRIBED = 0x08;
 
-const GROUP_MY_CHANNEL =
-  GROUP_SUBSCRIBE_ADMIN + GROUP_SUBSCRIBE_SUBSCRIBED + GROUP_SUBSCRIBE_PUBLISH;
+//  mSubscribeFlags is a set of bits, so it is tested, never compared: a group
+//  whose publish key another node shared with this one reads publish +
+//  subscribed (6), which is neither 4 nor admin + publish + subscribed (7).
+//  "Mine" follows the Qt client: subscribed and holding the admin key.
+const isSubscribed = (flags) => (flags & GROUP_SUBSCRIBE_SUBSCRIBED) !== 0;
+const isMine = (flags) => isSubscribed(flags) && (flags & GROUP_SUBSCRIBE_ADMIN) !== 0;
+//  The publish key is what the core checks before it accepts a post
+//  (p3GxsChannels::createPostV2). The owner holds it, and so does every node the
+//  owner shared it with.
+const canPublish = (flags) => (flags & GROUP_SUBSCRIBE_PUBLISH) !== 0;
 
 // rsfiles.h:168
 const RS_FILE_REQ_ANONYMOUS_ROUTING = 0x00000040;
@@ -152,10 +160,8 @@ async function updatedisplaychannels(keyid, details, loadContent = true) {
     description: details.mDescription,
     image: details.mImage,
     author: details.mMeta.mAuthorId,
-    isSubscribed:
-      details.mMeta.mSubscribeFlags === GROUP_SUBSCRIBE_SUBSCRIBED ||
-      details.mMeta.mSubscribeFlags === GROUP_MY_CHANNEL,
-    mychannel: details.mMeta.mSubscribeFlags === GROUP_MY_CHANNEL,
+    isSubscribed: isSubscribed(details.mMeta.mSubscribeFlags),
+    canPublish: canPublish(details.mMeta.mSubscribeFlags),
     posts: details.mMeta.mVisibleMsgCount,
     activity: details.mMeta.mLastPost,
     created: details.mMeta.mPublishTs,
@@ -316,7 +322,8 @@ module.exports = {
   GROUP_SUBSCRIBE_NOT_SUBSCRIBED,
   GROUP_SUBSCRIBE_PUBLISH,
   GROUP_SUBSCRIBE_SUBSCRIBED,
-  GROUP_MY_CHANNEL,
+  isSubscribed,
+  isMine,
   GXS_VOTE_DOWN,
   GXS_VOTE_UP,
   PUBLIC,

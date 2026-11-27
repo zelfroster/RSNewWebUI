@@ -28,19 +28,13 @@ const getChannels = {
       }
       //  Most popular first, the order the All tab has always shown.
       getChannels.All = [...channels].sort((a, b) => (b.mPop || 0) - (a.mPop || 0));
-      getChannels.Subscribed = channels.filter(
-      (channel) =>
-        channel.mSubscribeFlags === util.GROUP_SUBSCRIBE_SUBSCRIBED ||
-        channel.mSubscribeFlags === util.GROUP_MY_CHANNEL // my channel is subscribed
-      );
+      getChannels.Subscribed = channels.filter((channel) => util.isSubscribed(channel.mSubscribeFlags));
       const popular = channels.filter((channel) => !getChannels.Subscribed.includes(channel));
       popular.sort((a, b) => (b.mPop || 0) - (a.mPop || 0));
       getChannels.Other = popular.slice(5);
       getChannels.Popular = popular.slice(0, 5);
 
-      getChannels.MyChannels = channels.filter(
-        (channel) => channel.mSubscribeFlags === util.GROUP_MY_CHANNEL
-      );
+      getChannels.MyChannels = channels.filter((channel) => util.isMine(channel.mSubscribeFlags));
       getChannels.loaded = true;
       m.redraw();
       await getChannels.loadDescriptions();

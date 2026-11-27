@@ -463,7 +463,7 @@ const ChannelView = () => {
   let cdescription = '';
   let cauthor = '';
   let csubscribed = false;
-  let mychannel = false;
+  let canPublish = false;
   let cposts = 0;
   let plist = {};
   let createDate = {};
@@ -503,7 +503,7 @@ const ChannelView = () => {
       cauthor = 'Unknown';
     }
     csubscribed = c.isSubscribed;
-    mychannel = c.mychannel;
+    canPublish = c.canPublish;
     cposts = c.posts;
     createDate = c.created;
     lastActivity = c.activity;
@@ -549,7 +549,7 @@ const ChannelView = () => {
           m('.channel-mobile-search', [
             m(util.SearchBar, { category: 'posts', channelId: v.attrs.id }),
           ]),
-          mychannel && csubscribed && m('button.channel-mobile-create[type=button][title=Add Post][aria-label=Add Post]', {
+          canPublish && csubscribed && m('button.channel-mobile-create[type=button][title=Add Post][aria-label=Add Post]', {
             onclick: () => widget.popupMessage(
               m(AddPost, { chanId: v.attrs.id }),
               'create-channel-post-modal',
@@ -626,7 +626,7 @@ const ChannelView = () => {
           [
             m('.posts__heading.channel-posts-heading', [
               m('h3', 'Posts'),
-              mychannel &&
+              canPublish &&
                 m('button.channel-posts-heading__create.is-primary[type=button][title=Add Post][aria-label=Add Post]',
                   { onclick: () => widget.popupMessage(
                     m(AddPost, { chanId: v.attrs.id }),
